@@ -1,21 +1,51 @@
 // middlewares/authenticateUser.js
-const jwt = require('jsonwebtoken');
+const { verifyAccessToken } = require('../utils/generateToken');
+const User = require('../models/userModel');
 
-const authenticateUser = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ message: 'Unauthorized: No token provided' });
-  }
-
-  const token = authHeader.split(' ')[1];
-
+const authenticateUser = async (req, res, next) => {
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret');
-    req.user = decoded; // includes id and role if encoded
+    // Get token from header
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({
+        success: false,
+        message: 'Access denied. No token provided'
+      });
+    }
+
+    // Extract token
+    const token = authHeader.split(' ')[1];
+
+    // Verify token
+    const decoded = verifyAccessToken(token);
+
+    // Find user
+    const user = await User.findById(decoded.userId);
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Check if user is active
+    if (!user.isActive) {
+      return res.status(401).json({
+        success: false,
+        message: 'Account is deactivated'
+      });
+    }
+
+    // Add user to request
+    req.user = user;
     next();
-  } catch (err) {
-    return res.status(401).json({ message: 'Unauthorized: Invalid or expired token' });
+
+  } catch (error) {
+    return res.status(401).json({
+      success: false,
+      message: 'Invalid or expired token'
+    });
   }
 };
 
