@@ -38,7 +38,7 @@ A Node.js/Express backend for user authentication, management, and admin feature
 - **Auth:** Register, login, logout, email verification, password reset
 - **User/Admin:** List users (admin), get user by ID (admin), update user info, delete user (admin), delete own account, change user role (admin)
 
-For full API details, request/response examples, and error formats, **see [`API_DOCUMENTATION.md`](./API_DOCUMENTATION.md)**.
+For full API details, request/response examples, and error formats, **see [API_DOCUMENTATION.md](./API_DOCUMENTATION.md)**.
 
 ## 🛡️ Roles & Access
 - **User:** Register, login, update/delete own account
