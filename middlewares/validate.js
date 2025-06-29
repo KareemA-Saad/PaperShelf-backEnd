@@ -1,6 +1,7 @@
-const validate = (schema) => {
+const validate = (schema, type = 'body') => {
     return (req, res, next) => {
-        const { error } = schema.validate(req.body);
+        const dataToValidate = type === 'query' ? req.query : req.body;
+        const { error } = schema.validate(dataToValidate);
 
         if (error) {
             const errorMessage = error.details.map(detail => detail.message).join(', ');

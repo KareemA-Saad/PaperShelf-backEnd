@@ -59,6 +59,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    wishlist: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Book'
+    }],
   },
   { timestamps: true } // This automatically adds createdAt and updatedAt
 );
@@ -74,5 +78,48 @@ userSchema.pre("save", async function (next) {
 userSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
+
+// Database Indexes for Performance Optimization
+// These indexes will significantly improve admin query performance
+
+// 1. Role index - for filtering users by role (admin queries)
+userSchema.index({ role: 1 });
+
+// 2. Active status index - for filtering active/inactive users
+userSchema.index({ isActive: 1 });
+
+// 3. Email verification index - for filtering verified/unverified users
+userSchema.index({ isEmailVerified: 1 });
+
+// 4. Last login index - for sorting users by activity
+userSchema.index({ lastLogin: -1 });
+
+// 5. Created date index - for sorting by registration date
+userSchema.index({ createdAt: -1 });
+
+// 6. Name index - for searching users by name
+userSchema.index({ name: 1 });
+
+// 7. Composite indexes for common admin queries
+
+// Role + Active status (most common admin filter)
+userSchema.index({ role: 1, isActive: 1 });
+
+// Role + Email verification (admin filtering)
+userSchema.index({ role: 1, isEmailVerified: 1 });
+
+// Active + Last login (for user activity reports)
+userSchema.index({ isActive: 1, lastLogin: -1 });
+
+// Role + Created date (for user registration reports)
+userSchema.index({ role: 1, createdAt: -1 });
+
+// 8. Text index for name/email search (if you plan to add search functionality)
+userSchema.index({ name: 'text', email: 'text' });
+
+// 9. Token indexes for authentication performance
+userSchema.index({ refreshToken: 1 });
+userSchema.index({ emailVerificationToken: 1 });
+userSchema.index({ passwordResetToken: 1 });
 
 module.exports = mongoose.model("User", userSchema);
