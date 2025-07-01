@@ -90,6 +90,14 @@ const bookSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    isApproved: {
+         type: Boolean,
+         default: false
+    },
+    pendingDelete: { 
+        type: Boolean,
+        default: false
+    },
     createdAt: {
         type: Date,
         default: Date.now
