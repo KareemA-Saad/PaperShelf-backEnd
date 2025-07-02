@@ -9,8 +9,16 @@ const logger = require("./middlewares/logger");
 const { handleUploadError } = require("./middlewares/upload");
 const wishlistRoute = require('./routes/wishlistRoute');
 const reviewRoute = require('./routes/reviewRoute');
+const cors = require('cors');
 const app = express();
 connectDB();
+
+app.use(cors({
+  origin: 'http://localhost:4200',
+  methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
 
 // Middleware
 app.use(express.json());
