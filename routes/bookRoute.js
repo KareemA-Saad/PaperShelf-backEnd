@@ -9,6 +9,7 @@ const {
     getFeaturedBooks,
     createBook,
     getBookById,
+    getBookByIdWithCart,
     updateBook,
     deleteBook,
     toggleFeatured
@@ -53,6 +54,9 @@ router.post('/',
 
 // GET /api/v1/books/:id - Get book by ID (must be after specific routes)
 router.get('/:id', getBookById);
+
+// GET /api/v1/books/:id/cart - Get book by ID with cart information (authenticated users)
+router.get('/:id/cart', authenticateUser, getBookByIdWithCart);
 
 // PUT /api/v1/books/:id - Update book (Admin only)
 router.put('/:id',

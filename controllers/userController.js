@@ -107,6 +107,24 @@ const changeUserRole = async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to update user role" });
   }
 };
+//general to show on home page or show by admins
+// Get all authors (public endpoint - no authentication required)
+const getAllAuthors = async (req, res) => {
+  try {
+    const authors = await require('../models/userModel')
+      .find({ role: 'author', isActive: true })
+      .select('name email avatar createdAt')
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      count: authors.length,
+      authors
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Failed to fetch authors" });
+  }
+};
 
 module.exports = {
   getAllUsers,
@@ -115,7 +133,8 @@ module.exports = {
   deleteMe,
   getUserById,
   deleteUserById,
-  changeUserRole
+  changeUserRole,
+  getAllAuthors
 };
 
 
