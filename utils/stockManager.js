@@ -105,4 +105,4 @@ const validateStockAvailability = async (orderItems) => {
 module.exports = {
     reduceStockAfterPayment,
     validateStockAvailability
-}; 
+}; //

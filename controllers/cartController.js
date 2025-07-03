@@ -383,3 +383,4 @@ module.exports = {
     clearCart,
     getCartRecommendations
 }; 
+// Note: 
