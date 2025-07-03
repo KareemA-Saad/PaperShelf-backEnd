@@ -14,6 +14,9 @@ const {
   getAllAuthors,
 } = require('../controllers/userController');
 
+const { updateUserSchema } = require('../utils/validationSchemas');
+const validate = require('../middlewares/validate');
+
 // Route definitions
 // Public routes
 router.get('/authors', getAllAuthors);
@@ -25,7 +28,7 @@ router.delete('/:id', authenticateUser, authorizeRoles('admin'), deleteUserById)
 router.patch('/:id/role', authenticateUser, authorizeRoles('admin'), changeUserRole);
 
 // User routes
-router.patch('/:id', authenticateUser, updateUser); // User can update self, admin can update anyone (logic in controller)
+router.patch('/:id', authenticateUser, validate(updateUserSchema), updateUser); // User can update self, admin can update anyone (logic in controller)
 router.delete('/me', authenticateUser, deleteMe);
 
 module.exports = router;
