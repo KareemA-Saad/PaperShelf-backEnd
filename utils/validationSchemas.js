@@ -29,7 +29,7 @@ const registerSchema = Joi.object({
             'string.pattern.base': 'Password must contain at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character (@$!%*?&)',
             'any.required': 'Password is required'
         }),
-        role: Joi.string()
+    role: Joi.string()
         .valid('user', 'author')
         .default('user')
         .messages({
@@ -679,6 +679,29 @@ const bookSearchSchema = Joi.object({
         })
 });
 
+// User profile update schema
+const updateUserSchema = Joi.object({
+    name: Joi.string()
+        .min(2)
+        .max(50)
+        .optional(),
+    password: Joi.string()
+        .when('name', { is: Joi.exist(), then: Joi.required() })
+        .messages({ 'any.required': 'Current password is required to update name' }),
+    oldPassword: Joi.string()
+        .when('newPassword', { is: Joi.exist(), then: Joi.required() })
+        .messages({ 'any.required': 'Old password is required to change password' }),
+    newPassword: Joi.string()
+        .min(8)
+        .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/)
+        .when('oldPassword', { is: Joi.exist(), then: Joi.required() })
+        .messages({
+            'string.min': 'Password must be at least 8 characters long',
+            'string.pattern.base': 'Password must contain at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character (@$!%*?&)',
+            'any.required': 'New password is required to change password'
+        })
+});
+
 module.exports = {
     registerSchema,
     loginSchema,
@@ -696,5 +719,6 @@ module.exports = {
     updateOrderStatusSchema,
     validateCheckoutSchema,
     processCheckoutSchema,
-    processPaymentSchema
-};//
+    processPaymentSchema,
+    updateUserSchema
+};

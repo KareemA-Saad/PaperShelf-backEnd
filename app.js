@@ -4,6 +4,7 @@ const connectDB = require("./config/db");
 const userRoute = require("./routes/userRoute");
 const authRoute = require("./routes/authRoute");
 const bookRoute = require("./routes/bookRoute");
+const cartRoute = require("./routes/cartRoute");
 const errorHandler = require("./middlewares/errorHandler");
 const logger = require("./middlewares/logger");
 const { handleUploadError } = require("./middlewares/upload");
@@ -53,6 +54,8 @@ app.use('/api/wishlist', wishlistRoute);
 
 // Review routes
 app.use('/api/reviews', reviewRoute);
+
+app.use('/api/cart', cartRoute);
 
 // Upload error handling middleware
 app.use(handleUploadError);
