@@ -275,7 +275,7 @@ const rejectBookDeletion = async (req, res) => {
     console.error(err);
     res.status(500).json({ success: false, message: 'Failed to reject deletion' });
   }
-
+}
 //general to show on home page or show by admins
 // Get all authors (public endpoint - no authentication required)
 const getAllAuthors = async (req, res) => {
