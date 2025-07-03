@@ -414,6 +414,230 @@ const bookListingSchema = Joi.object({
         })
 });
 
+// Cart validation schemas
+const addToCartSchema = Joi.object({
+    bookId: Joi.string()
+        .required()
+        .messages({
+            'any.required': 'Book ID is required'
+        }),
+
+    quantity: Joi.number()
+        .integer()
+        .min(1)
+        .max(10)
+        .default(1)
+        .messages({
+            'number.base': 'Quantity must be a number',
+            'number.integer': 'Quantity must be a whole number',
+            'number.min': 'Quantity must be at least 1',
+            'number.max': 'Quantity cannot exceed 10'
+        })
+});
+
+const updateCartItemSchema = Joi.object({
+    itemId: Joi.string()
+        .required()
+        .messages({
+            'any.required': 'Item ID is required'
+        }),
+
+    quantity: Joi.number()
+        .integer()
+        .min(1)
+        .max(10)
+        .required()
+        .messages({
+            'number.base': 'Quantity must be a number',
+            'number.integer': 'Quantity must be a whole number',
+            'number.min': 'Quantity must be at least 1',
+            'number.max': 'Quantity cannot exceed 10',
+            'any.required': 'Quantity is required'
+        })
+});
+
+// Order validation schemas
+const addressSchema = Joi.object({
+    firstName: Joi.string()
+        .min(2)
+        .max(50)
+        .required()
+        .messages({
+            'string.min': 'First name must be at least 2 characters long',
+            'string.max': 'First name cannot exceed 50 characters',
+            'any.required': 'First name is required'
+        }),
+
+    lastName: Joi.string()
+        .min(2)
+        .max(50)
+        .required()
+        .messages({
+            'string.min': 'Last name must be at least 2 characters long',
+            'string.max': 'Last name cannot exceed 50 characters',
+            'any.required': 'Last name is required'
+        }),
+
+    email: Joi.string()
+        .email()
+        .required()
+        .messages({
+            'string.email': 'Please enter a valid email address',
+            'any.required': 'Email is required'
+        }),
+
+    phone: Joi.string()
+        .min(10)
+        .max(15)
+        .required()
+        .messages({
+            'string.min': 'Phone number must be at least 10 characters long',
+            'string.max': 'Phone number cannot exceed 15 characters',
+            'any.required': 'Phone number is required'
+        }),
+
+    address: Joi.string()
+        .min(10)
+        .max(200)
+        .required()
+        .messages({
+            'string.min': 'Address must be at least 10 characters long',
+            'string.max': 'Address cannot exceed 200 characters',
+            'any.required': 'Address is required'
+        }),
+
+    city: Joi.string()
+        .min(2)
+        .max(50)
+        .required()
+        .messages({
+            'string.min': 'City must be at least 2 characters long',
+            'string.max': 'City cannot exceed 50 characters',
+            'any.required': 'City is required'
+        }),
+
+    state: Joi.string()
+        .min(2)
+        .max(50)
+        .required()
+        .messages({
+            'string.min': 'State must be at least 2 characters long',
+            'string.max': 'State cannot exceed 50 characters',
+            'any.required': 'State is required'
+        }),
+
+    country: Joi.string()
+        .min(2)
+        .max(50)
+        .default('Egypt')
+        .messages({
+            'string.min': 'Country must be at least 2 characters long',
+            'string.max': 'Country cannot exceed 50 characters'
+        })
+});
+
+const createOrderSchema = Joi.object({
+    shippingAddress: addressSchema.required().messages({
+        'any.required': 'Shipping address is required'
+    }),
+
+    billingAddress: addressSchema.optional(),
+
+    paymentMethod: Joi.string()
+        .valid('cash_on_delivery', 'paypal')
+        .required()
+        .messages({
+            'any.only': 'Payment method must be either cash_on_delivery or paypal',
+            'any.required': 'Payment method is required'
+        }),
+
+    notes: Joi.string()
+        .max(500)
+        .optional()
+        .messages({
+            'string.max': 'Notes cannot exceed 500 characters'
+        })
+});
+
+const updateOrderStatusSchema = Joi.object({
+    orderStatus: Joi.string()
+        .valid('pending', 'shipped', 'delivered', 'cancelled')
+        .optional()
+        .messages({
+            'any.only': 'Order status must be one of: pending, shipped, delivered, cancelled'
+        }),
+
+    trackingNumber: Joi.string()
+        .max(100)
+        .optional()
+        .messages({
+            'string.max': 'Tracking number cannot exceed 100 characters'
+        }),
+
+    notes: Joi.string()
+        .max(500)
+        .optional()
+        .messages({
+            'string.max': 'Notes cannot exceed 500 characters'
+        })
+});
+
+// Checkout validation schemas
+const validateCheckoutSchema = Joi.object({
+    // No body required for validation endpoint
+});
+
+const processCheckoutSchema = Joi.object({
+    shippingAddress: addressSchema.required().messages({
+        'any.required': 'Shipping address is required'
+    }),
+
+    billingAddress: addressSchema.optional(),
+
+    paymentMethod: Joi.string()
+        .valid('cash_on_delivery', 'paypal')
+        .required()
+        .messages({
+            'any.only': 'Payment method must be either cash_on_delivery or paypal',
+            'any.required': 'Payment method is required'
+        }),
+
+    notes: Joi.string()
+        .max(500)
+        .optional()
+        .messages({
+            'string.max': 'Notes cannot exceed 500 characters'
+        })
+});
+
+const processPaymentSchema = Joi.object({
+    orderId: Joi.string()
+        .required()
+        .messages({
+            'any.required': 'Order ID is required'
+        }),
+
+    paymentMethod: Joi.string()
+        .valid('cash_on_delivery', 'paypal')
+        .required()
+        .messages({
+            'any.only': 'Payment method must be either cash_on_delivery or paypal',
+            'any.required': 'Payment method is required'
+        }),
+
+    paymentDetails: Joi.object({
+        paypalId: Joi.string()
+            .when('paymentMethod', {
+                is: 'paypal',
+                then: Joi.required(),
+                otherwise: Joi.optional()
+            })
+            .messages({
+                'any.required': 'PayPal ID is required for PayPal payments'
+            })
+    }).optional()
+});
+
 // Book search query parameters schema
 const bookSearchSchema = Joi.object({
     q: Joi.string()
@@ -465,5 +689,12 @@ module.exports = {
     createBookSchema,
     updateBookSchema,
     bookListingSchema,
-    bookSearchSchema
-};
+    bookSearchSchema,
+    addToCartSchema,
+    updateCartItemSchema,
+    createOrderSchema,
+    updateOrderStatusSchema,
+    validateCheckoutSchema,
+    processCheckoutSchema,
+    processPaymentSchema
+};//
