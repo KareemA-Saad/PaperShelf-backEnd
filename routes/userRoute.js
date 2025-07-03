@@ -11,9 +11,13 @@ const {
   deleteMe,
   deleteUserById,
   changeUserRole,
+  getAllAuthors,
 } = require('../controllers/userController');
 
 // Route definitions
+// Public routes
+router.get('/authors', getAllAuthors);
+
 // Admin only routes
 router.get('/', authenticateUser, authorizeRoles('admin'), getAllUsers);
 router.get('/:id', authenticateUser, authorizeRoles('admin'), getUserById);

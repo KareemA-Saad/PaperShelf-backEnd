@@ -1,4 +1,5 @@
 const Book = require('../models/bookModel');
+const Cart = require('../models/cartModel');
 const { generateFileUrl, deleteFile } = require('../middlewares/upload');
 
 // Get all books with filtering, sorting, and pagination
@@ -282,6 +283,57 @@ const getBookById = async (req, res) => {
     }
 };
 
+// Get book by ID with cart information (for authenticated users)
+const getBookByIdWithCart = async (req, res) => {
+    try {
+        const book = await Book.findById(req.params.id);
+
+        if (!book) {
+            return res.status(404).json({
+                success: false,
+                message: 'Book not found'
+            });
+        }
+
+        // Get user's cart to check if book is already in cart
+        let cartInfo = null;
+        if (req.user) {
+            const cart = await Cart.findOne({ user: req.user.id });
+            if (cart) {
+                const cartItem = cart.items.find(item =>
+                    item.book.toString() === req.params.id
+                );
+                if (cartItem) {
+                    cartInfo = {
+                        inCart: true,
+                        quantity: cartItem.quantity,
+                        priceAtTime: cartItem.priceAtTime
+                    };
+                } else {
+                    cartInfo = {
+                        inCart: false,
+                        quantity: 0
+                    };
+                }
+            }
+        }
+
+        res.status(200).json({
+            success: true,
+            data: {
+                book,
+                cartInfo
+            }
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
 // Update book (Admin only)
 const updateBook = async (req, res) => {
     try {
@@ -450,6 +502,7 @@ module.exports = {
     getFeaturedBooks,
     createBook,
     getBookById,
+    getBookByIdWithCart,
     updateBook,
     deleteBook,
     toggleFeatured

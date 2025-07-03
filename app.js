@@ -1,5 +1,6 @@
 require("dotenv").config();
 const express = require("express");
+const cors = require("cors");
 const connectDB = require("./config/db");
 const userRoute = require("./routes/userRoute");
 const authRoute = require("./routes/authRoute");
@@ -9,10 +10,21 @@ const logger = require("./middlewares/logger");
 const { handleUploadError } = require("./middlewares/upload");
 const wishlistRoute = require('./routes/wishlistRoute');
 const reviewRoute = require('./routes/reviewRoute');
+const cartRoute = require('./routes/cartRoute');
+const orderRoute = require('./routes/orderRoute');
+const checkoutRoute = require('./routes/checkoutRoute');
 const app = express();
 connectDB();
 
 // Middleware
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production'
+    ? ['https://your-frontend-domain.com'] // Replace with your actual frontend domain
+    : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:5173', 'http://localhost:4200'], // Common frontend dev ports
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token']
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -45,6 +57,15 @@ app.use('/api/wishlist', wishlistRoute);
 
 // Review routes
 app.use('/api/reviews', reviewRoute);
+
+// Cart routes
+app.use('/api/cart', cartRoute);
+
+// Order routes
+app.use('/api/orders', orderRoute);
+
+// Checkout routes
+app.use('/api/checkout', checkoutRoute);
 
 // Upload error handling middleware
 app.use(handleUploadError);
