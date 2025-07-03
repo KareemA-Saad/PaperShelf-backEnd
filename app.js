@@ -5,20 +5,21 @@ const userRoute = require("./routes/userRoute");
 const authRoute = require("./routes/authRoute");
 const authorRoute = require("./routes/author.routes"); 
 const bookRoute = require("./routes/bookRoute");
+const cartRoute = require("./routes/cartRoute");
 const errorHandler = require("./middlewares/errorHandler");
 const logger = require("./middlewares/logger");
 const { handleUploadError } = require("./middlewares/upload");
 const wishlistRoute = require('./routes/wishlistRoute');
 const reviewRoute = require('./routes/reviewRoute');
+const cors = require('cors');
 const app = express();
 connectDB();
 
-const cors = require('cors');
 app.use(cors({
   origin: 'http://localhost:4200',
-  methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
+  credentials: true
 }));
 // Middleware
 app.use(express.json());
@@ -56,6 +57,8 @@ app.use('/api/wishlist', wishlistRoute);
 
 // Review routes
 app.use('/api/reviews', reviewRoute);
+
+app.use('/api/cart', cartRoute);
 
 // Upload error handling middleware
 app.use(handleUploadError);

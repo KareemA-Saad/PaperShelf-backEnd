@@ -1,4 +1,5 @@
 const Book = require('../models/bookModel');
+const Cart = require('../models/cartModel');
 const { generateFileUrl, deleteFile } = require('../middlewares/upload');
 
 // Get all books with filtering, sorting, and pagination
@@ -267,10 +268,87 @@ const getBookById = async (req, res) => {
             });
         }
 
+        // Stock info and warning
+        let stockStatus = 'in_stock';
+        let stockWarning = null;
+        if (book.stock === 0) {
+            stockStatus = 'out_of_stock';
+        } else if (book.stock <= 5) {
+            stockStatus = 'low_stock';
+            stockWarning = `Only ${book.stock} left in stock!`;
+        }
+
         res.status(200).json({
             success: true,
             data: {
-                book
+                book,
+                stock: book.stock,
+                stockStatus,
+                stockWarning
+            }
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+// Get book by ID with cart information (for authenticated users)
+const getBookByIdWithCart = async (req, res) => {
+    try {
+        const book = await Book.findById(req.params.id);
+
+        if (!book) {
+            return res.status(404).json({
+                success: false,
+                message: 'Book not found'
+            });
+        }
+
+        // Stock info and warning
+        let stockStatus = 'in_stock';
+        let stockWarning = null;
+        if (book.stock === 0) {
+            stockStatus = 'out_of_stock';
+        } else if (book.stock <= 5) {
+            stockStatus = 'low_stock';
+            stockWarning = `Only ${book.stock} left in stock!`;
+        }
+
+        // Get user's cart to check if book is already in cart
+        let cartInfo = null;
+        if (req.user) {
+            const cart = await Cart.findOne({ user: req.user.id });
+            if (cart) {
+                const cartItem = cart.items.find(item =>
+                    item.book.toString() === req.params.id
+                );
+                if (cartItem) {
+                    cartInfo = {
+                        inCart: true,
+                        quantity: cartItem.quantity,
+                        priceAtTime: cartItem.priceAtTime
+                    };
+                } else {
+                    cartInfo = {
+                        inCart: false,
+                        quantity: 0
+                    };
+                }
+            }
+        }
+
+        res.status(200).json({
+            success: true,
+            data: {
+                book,
+                cartInfo,
+                stock: book.stock,
+                stockStatus,
+                stockWarning
             }
         });
 
@@ -450,7 +528,9 @@ module.exports = {
     getFeaturedBooks,
     createBook,
     getBookById,
+    getBookByIdWithCart,
     updateBook,
     deleteBook,
     toggleFeatured
-}; 
+};
+// Note: Ensure that the deleteFile function is implemented in your upload middleware to handle file deletions properly.
