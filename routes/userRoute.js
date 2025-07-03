@@ -5,6 +5,7 @@ const authorizeRoles = require('../middlewares/authorizeRoles');
 
 // Import controllers
 const {
+  updateUserProfile,
   getAllUsers,
   getUserById,
   updateUser,
@@ -28,7 +29,8 @@ router.delete('/:id', authenticateUser, authorizeRoles('admin'), deleteUserById)
 router.patch('/:id/role', authenticateUser, authorizeRoles('admin'), changeUserRole);
 
 // User routes
-router.patch('/:id', authenticateUser, validate(updateUserSchema), updateUser); // User can update self, admin can update anyone (logic in controller)
+router.patch('/profile/:id', authenticateUser, validate(updateUserSchema), updateUserProfile); // User profile update (name/password)
+router.patch('/:id', authenticateUser, authorizeRoles('admin'), validate(updateUserSchema), updateUser); // Admin can update any user
 router.delete('/me', authenticateUser, deleteMe);
 
 module.exports = router;

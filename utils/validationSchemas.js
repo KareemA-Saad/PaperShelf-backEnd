@@ -688,18 +688,39 @@ const updateUserSchema = Joi.object({
     password: Joi.string()
         .when('name', { is: Joi.exist(), then: Joi.required() })
         .messages({ 'any.required': 'Current password is required to update name' }),
-    oldPassword: Joi.string()
-        .when('newPassword', { is: Joi.exist(), then: Joi.required() })
-        .messages({ 'any.required': 'Old password is required to change password' }),
+    currentPassword: Joi.string()
+        .optional()
+        .messages({ 'any.required': 'Current password is required to change password' }),
     newPassword: Joi.string()
         .min(8)
         .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/)
-        .when('oldPassword', { is: Joi.exist(), then: Joi.required() })
+        .optional()
         .messages({
             'string.min': 'Password must be at least 8 characters long',
             'string.pattern.base': 'Password must contain at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character (@$!%*?&)',
             'any.required': 'New password is required to change password'
-        })
+        }),
+    confirmNewPassword: Joi.string()
+        .optional()
+        .messages({ 'any.required': 'Password confirmation is required' })
+}).custom((value, helpers) => {
+    // Custom validation for password change
+    if (value.newPassword || value.currentPassword || value.confirmNewPassword) {
+        // If any password field is provided, all three must be provided
+        if (!value.currentPassword) {
+            return helpers.error('any.invalid', { message: 'Current password is required to change password' });
+        }
+        if (!value.newPassword) {
+            return helpers.error('any.invalid', { message: 'New password is required to change password' });
+        }
+        if (!value.confirmNewPassword) {
+            return helpers.error('any.invalid', { message: 'Password confirmation is required' });
+        }
+        if (value.newPassword !== value.confirmNewPassword) {
+            return helpers.error('any.invalid', { message: 'New password and confirmation password do not match' });
+        }
+    }
+    return value;
 });
 
 module.exports = {
