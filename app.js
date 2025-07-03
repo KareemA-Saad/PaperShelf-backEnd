@@ -3,6 +3,7 @@ const express = require("express");
 const connectDB = require("./config/db");
 const userRoute = require("./routes/userRoute");
 const authRoute = require("./routes/authRoute");
+const authorRoute = require("./routes/author.routes"); 
 const bookRoute = require("./routes/bookRoute");
 const cartRoute = require("./routes/cartRoute");
 const errorHandler = require("./middlewares/errorHandler");
@@ -16,11 +17,10 @@ connectDB();
 
 app.use(cors({
   origin: 'http://localhost:4200',
-  methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
-
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -48,6 +48,9 @@ app.use("/api/v1/users", userRoute);
 
 // Book routes
 app.use("/api/v1/books", bookRoute);
+
+//  Author routes
+app.use("/api/v1/author", authorRoute)
 
 // Wishlist routes
 app.use('/api/wishlist', wishlistRoute);
