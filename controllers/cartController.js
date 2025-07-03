@@ -93,30 +93,53 @@ const addToCart = async (req, res) => {
             item => item.book.toString() === bookId
         );
 
+        // Calculate current total quantity in cart (excluding this item if updating)
+        let currentTotal = cart.items.reduce((sum, item, idx) => {
+            if (idx === existingItemIndex) return sum; // exclude current item if updating
+            return sum + item.quantity;
+        }, 0);
+        let newTotal;
+        let newBookQuantity;
         if (existingItemIndex > -1) {
-            // Check if new total quantity exceeds limit
-            const newTotalQuantity = cart.items[existingItemIndex].quantity + quantity;
-            if (newTotalQuantity > 10) {
+            // Calculate new quantity for this book
+            newBookQuantity = cart.items[existingItemIndex].quantity + quantity;
+            // Check if new quantity for this book exceeds stock
+            if (newBookQuantity > book.stock) {
                 return res.status(400).json({
                     success: false,
-                    message: `Cannot add ${quantity} more. Maximum 10 items per book allowed (current: ${cart.items[existingItemIndex].quantity})`,
+                    message: `Cannot add ${quantity}. Only ${book.stock} copies available. You already have ${cart.items[existingItemIndex].quantity} in your cart.`,
+                    availableStock: book.stock,
                     currentInCart: cart.items[existingItemIndex].quantity,
-                    requestedQuantity: quantity,
-                    maxAllowed: 10
-                });
-            }
-            // Update existing item
-            cart.items[existingItemIndex].quantity = newTotalQuantity;
-        } else {
-            // Validate quantity doesn't exceed maximum for new items
-            if (quantity > 10) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Maximum 10 items per book allowed',
-                    maxAllowed: 10,
                     requestedQuantity: quantity
                 });
             }
+            newTotal = currentTotal + quantity;
+        } else {
+            newBookQuantity = quantity;
+            if (newBookQuantity > book.stock) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Cannot add ${quantity}. Only ${book.stock} copies available.`,
+                    availableStock: book.stock,
+                    requestedQuantity: quantity
+                });
+            }
+            newTotal = currentTotal + quantity;
+        }
+        if (newTotal > 10) {
+            return res.status(400).json({
+                success: false,
+                message: `Cannot add ${quantity}. Cart can only hold a total of 10 items. Current total: ${currentTotal}`,
+                currentTotal,
+                requestedQuantity: quantity,
+                maxAllowed: 10
+            });
+        }
+
+        if (existingItemIndex > -1) {
+            // Update existing item
+            cart.items[existingItemIndex].quantity = newBookQuantity;
+        } else {
             // Add new item
             cart.items.push({
                 book: bookId,
@@ -162,16 +185,6 @@ const updateCartItem = async (req, res) => {
             });
         }
 
-        // Validate quantity doesn't exceed maximum per book
-        if (quantity > 10) {
-            return res.status(400).json({
-                success: false,
-                message: 'Maximum 10 items per book allowed',
-                maxAllowed: 10,
-                requestedQuantity: quantity
-            });
-        }
-
         const cart = await Cart.findOne({ user: req.user.id });
         if (!cart) {
             return res.status(404).json({
@@ -188,28 +201,36 @@ const updateCartItem = async (req, res) => {
             });
         }
 
-        const currentQuantity = cart.items[itemIndex].quantity;
-        const quantityDifference = quantity - currentQuantity;
-
-        // If quantity is being increased, check stock availability
-        if (quantityDifference > 0) {
-            const book = await Book.findById(cart.items[itemIndex].book);
-            if (!book) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'Book not found'
-                });
-            }
-
-            if (book.stock < quantityDifference) {
-                return res.status(400).json({
-                    success: false,
-                    message: `Cannot increase quantity. Only ${book.stock} more copies available (requested increase: ${quantityDifference})`,
-                    availableStock: book.stock,
-                    requestedIncrease: quantityDifference,
-                    currentInCart: currentQuantity
-                });
-            }
+        // Calculate total quantity if this item is updated
+        let currentTotal = cart.items.reduce((sum, item, idx) => {
+            if (idx === itemIndex) return sum; // exclude the item being updated
+            return sum + item.quantity;
+        }, 0);
+        let newTotal = currentTotal + quantity;
+        // Check if new quantity for this book exceeds stock
+        const book = await Book.findById(cart.items[itemIndex].book);
+        if (!book) {
+            return res.status(404).json({
+                success: false,
+                message: 'Book not found'
+            });
+        }
+        if (quantity > book.stock) {
+            return res.status(400).json({
+                success: false,
+                message: `Cannot set quantity to ${quantity}. Only ${book.stock} copies available.`,
+                availableStock: book.stock,
+                requestedQuantity: quantity
+            });
+        }
+        if (newTotal > 10) {
+            return res.status(400).json({
+                success: false,
+                message: `Cannot update item. Cart can only hold a total of 10 items. Current total (excluding this item): ${currentTotal}`,
+                currentTotal,
+                requestedQuantity: quantity,
+                maxAllowed: 10
+            });
         }
 
         cart.items[itemIndex].quantity = quantity;
@@ -382,5 +403,5 @@ module.exports = {
     removeFromCart,
     clearCart,
     getCartRecommendations
-}; 
+};
 // Note: 
