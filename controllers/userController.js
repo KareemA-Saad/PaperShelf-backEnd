@@ -1,3 +1,4 @@
+
 //=========================================== User features ============================================
 
 const User = require('../models/userModel');
@@ -153,6 +154,121 @@ const changeUserRole = async (req, res) => {
   }
 };
 
+//=========================================== Admin Book Approval ============================================
+
+// Get all pending books (isApproved: false)
+const getPendingBooks = async (req, res) => {
+  try {
+    const Book = require('../models/bookModel.js'); // Ensure the Book model is imported
+    const pendingBooks = await Book.find({ isApproved: false }).populate('author', 'name email');
+
+    res.status(200).json({
+      success: true,
+      count: pendingBooks.length,
+      data: pendingBooks
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
+// Approve a book by ID
+const approveBook = async (req, res) => {
+  try {
+    const Book = require('../models/bookModel.js'); // Ensure the Book model is imported
+    const book = await Book.findById(req.params.id);
+
+    if (!book) {
+      return res.status(404).json({ success: false, message: 'Book not found' });
+    }
+
+    book.isApproved = true;
+    await book.save();
+
+    res.status(200).json({ success: true, message: 'Book approved successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
+// Reject a book by ID (new or updated)
+const rejectBook = async (req, res) => {
+  try {
+    const book = await Book.findById(req.params.id);
+
+    if (!book) {
+      return res.status(404).json({ success: false, message: 'Book not found' });
+    }
+
+    if (book.isApproved) {
+      return res.status(400).json({ success: false, message: 'Book is already approved, cannot reject' });
+    }
+
+  
+    await book.deleteOne();
+
+    res.json({ success: true, message: 'Book has been rejected and removed' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to reject book' });
+  }
+};
+
+//  Get all books with pendingDelete = true
+const getPendingDeleteBooks = async (req, res) => {
+  try {
+    const books = await Book.find({ pendingDelete: true }).populate('author', 'name email');
+    res.json({ success: true, count: books.length, data: books });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to fetch pending deletions' });
+  }
+};
+
+//  Approve deletion (delete the book permanently)
+const approveBookDeletion = async (req, res) => {
+  try {
+    const book = await Book.findById(req.params.id);
+
+    if (!book) {
+      return res.status(404).json({ success: false, message: 'Book not found' });
+    }
+
+    if (!book.pendingDelete) {
+      return res.status(400).json({ success: false, message: 'Book is not marked for deletion' });
+    }
+
+    await book.deleteOne();
+
+    res.json({ success: true, message: 'Book deleted successfully' });
+  } catch (err) {
+    console.error('Error while deleting book:', err);
+    res.status(500).json({ success: false, message: 'Failed to delete book' });
+  }
+};
+
+//  Reject deletion request (set pendingDelete = false)
+const rejectBookDeletion = async (req, res) => {
+  try {
+    const book = await Book.findById(req.params.id);
+
+    if (!book) {
+      return res.status(404).json({ success: false, message: 'Book not found' });
+    }
+
+    if (!book.pendingDelete) {
+      return res.status(400).json({ success: false, message: 'This book is not marked for deletion' });
+    }
+
+    book.pendingDelete = false;
+    await book.save();
+
+    res.json({ success: true, message: 'Book deletion request rejected' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Failed to reject deletion' });
+  }
+};
 //general to show on home page or show by admins
 // Get all authors (public endpoint - no authentication required)
 const getAllAuthors = async (req, res) => {
@@ -179,8 +295,13 @@ module.exports = {
   getUserById,
   deleteUserById,
   changeUserRole,
-  getAllAuthors
+   getAllAuthors,
+  getPendingBooks, // Get all pending books
+  approveBook,
+  rejectBook,
+  getPendingDeleteBooks,
+  approveBookDeletion,
+  rejectBookDeletion,
+
 };
-
-
 
