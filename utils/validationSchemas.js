@@ -685,12 +685,10 @@ const updateUserSchema = Joi.object({
         .min(2)
         .max(50)
         .optional(),
-    password: Joi.string()
-        .when('name', { is: Joi.exist(), then: Joi.required() })
-        .messages({ 'any.required': 'Current password is required to update name' }),
     currentPassword: Joi.string()
-        .optional()
-        .messages({ 'any.required': 'Current password is required to change password' }),
+        .when('name', { is: Joi.exist(), then: Joi.required() })
+        .when('newPassword', { is: Joi.exist(), then: Joi.required() })
+        .messages({ 'any.required': 'Current password is required for any changes' }),
     newPassword: Joi.string()
         .min(8)
         .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/)
@@ -701,24 +699,12 @@ const updateUserSchema = Joi.object({
             'any.required': 'New password is required to change password'
         }),
     confirmNewPassword: Joi.string()
-        .optional()
+        .when('newPassword', { is: Joi.exist(), then: Joi.required() })
         .messages({ 'any.required': 'Password confirmation is required' })
 }).custom((value, helpers) => {
-    // Custom validation for password change
-    if (value.newPassword || value.currentPassword || value.confirmNewPassword) {
-        // If any password field is provided, all three must be provided
-        if (!value.currentPassword) {
-            return helpers.error('any.invalid', { message: 'Current password is required to change password' });
-        }
-        if (!value.newPassword) {
-            return helpers.error('any.invalid', { message: 'New password is required to change password' });
-        }
-        if (!value.confirmNewPassword) {
-            return helpers.error('any.invalid', { message: 'Password confirmation is required' });
-        }
-        if (value.newPassword !== value.confirmNewPassword) {
-            return helpers.error('any.invalid', { message: 'New password and confirmation password do not match' });
-        }
+    // Custom validation for password confirmation
+    if (value.newPassword && value.confirmNewPassword && value.newPassword !== value.confirmNewPassword) {
+        return helpers.error('any.invalid', { message: 'New password and confirmation password do not match' });
     }
     return value;
 });
