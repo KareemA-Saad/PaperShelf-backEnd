@@ -685,12 +685,10 @@ const updateUserSchema = Joi.object({
         .min(2)
         .max(50)
         .optional(),
-    password: Joi.string()
+    currentPassword: Joi.string()
         .when('name', { is: Joi.exist(), then: Joi.required() })
-        .messages({ 'any.required': 'Current password is required to update name' }),
-    oldPassword: Joi.string()
-        .optional()
-        .messages({ 'any.required': 'Old password is required to change password' }),
+        .when('newPassword', { is: Joi.exist(), then: Joi.required() })
+        .messages({ 'any.required': 'Current password is required for any changes' }),
     newPassword: Joi.string()
         .min(8)
         .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/)
@@ -699,14 +697,14 @@ const updateUserSchema = Joi.object({
             'string.min': 'Password must be at least 8 characters long',
             'string.pattern.base': 'Password must contain at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character (@$!%*?&)',
             'any.required': 'New password is required to change password'
-        })
+        }),
+    confirmNewPassword: Joi.string()
+        .when('newPassword', { is: Joi.exist(), then: Joi.required() })
+        .messages({ 'any.required': 'Password confirmation is required' })
 }).custom((value, helpers) => {
-    // Custom validation to ensure both oldPassword and newPassword are provided together
-    if (value.newPassword && !value.oldPassword) {
-        return helpers.error('any.invalid', { message: 'Old password is required when setting a new password' });
-    }
-    if (value.oldPassword && !value.newPassword) {
-        return helpers.error('any.invalid', { message: 'New password is required when providing old password' });
+    // Custom validation for password confirmation
+    if (value.newPassword && value.confirmNewPassword && value.newPassword !== value.confirmNewPassword) {
+        return helpers.error('any.invalid', { message: 'New password and confirmation password do not match' });
     }
     return value;
 });

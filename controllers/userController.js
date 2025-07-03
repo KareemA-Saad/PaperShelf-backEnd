@@ -28,16 +28,23 @@ const updateUserProfile = async (req, res) => {
       user.name = req.body.name;
     }
 
-    // Update password (requires oldPassword and newPassword)
-    if (req.body.oldPassword && req.body.newPassword) {
-      // Check old password
-      const isMatch = await user.comparePassword(req.body.oldPassword);
+    // Update password (requires currentPassword, newPassword, and confirmNewPassword)
+    if (req.body.currentPassword && req.body.newPassword && req.body.confirmNewPassword) {
+      // Check current password
+      const isMatch = await user.comparePassword(req.body.currentPassword);
       if (!isMatch) {
-        return res.status(400).json({ success: false, message: 'Old password is incorrect' });
+        return res.status(400).json({ success: false, message: 'Current password is incorrect' });
       }
+
+      // Check if new password matches confirmation
+      if (req.body.newPassword !== req.body.confirmNewPassword) {
+        return res.status(400).json({ success: false, message: 'New password and confirmation password do not match' });
+      }
+
       // Validate new password (will be validated by schema on save)
       user.password = req.body.newPassword;
       await user.save();
+
       // Send notification email with reset link
       const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password`;
       const emailContent = emailTemplates.passwordChangedNotification(user.name, resetLink);
@@ -154,7 +161,7 @@ const changeUserRole = async (req, res) => {
   }
 };
 
-//=========================================== Admin Book Approval ============================================
+
 
 // Get all pending books (isApproved: false)
 const getPendingBooks = async (req, res) => {
@@ -268,7 +275,7 @@ const rejectBookDeletion = async (req, res) => {
     console.error(err);
     res.status(500).json({ success: false, message: 'Failed to reject deletion' });
   }
-};
+
 //general to show on home page or show by admins
 // Get all authors (public endpoint - no authentication required)
 const getAllAuthors = async (req, res) => {
@@ -289,6 +296,7 @@ const getAllAuthors = async (req, res) => {
 };
 
 module.exports = {
+  updateUserProfile,
   getAllUsers,
   updateUser,
   deleteMe,
