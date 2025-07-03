@@ -17,7 +17,7 @@ const generatePasswordResetOTP = () => {
 // Register user
 const register = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -37,6 +37,7 @@ const register = async (req, res) => {
       name,
       email,
       password,
+      role,
       emailVerificationToken,
       emailVerificationExpires
     });
@@ -102,6 +103,28 @@ const login = async (req, res) => {
       });
     }
 
+    // Check if user is verified
+    if (!user.isEmailVerified) {
+      // Generate new OTP and expiry
+      const emailVerificationToken = generateEmailVerificationOTP();
+      const emailVerificationExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+      user.emailVerificationToken = emailVerificationToken;
+      user.emailVerificationExpires = emailVerificationExpires;
+      await user.save({ validateBeforeSave: false });
+
+      // Send OTP email
+      const emailContent = emailTemplates.verificationOTP(user.name, emailVerificationToken);
+      await sendEmail({
+        email: user.email,
+        subject: emailContent.subject,
+        html: emailContent.html
+      });
+
+      return res.status(401).json({
+        success: false,
+        message: 'Email not verified. OTP sent to your email. Please verify your email to login.'
+      });
+    }
     // Update last login
     user.lastLogin = new Date();
 
