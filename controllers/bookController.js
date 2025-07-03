@@ -268,10 +268,23 @@ const getBookById = async (req, res) => {
             });
         }
 
+        // Stock info and warning
+        let stockStatus = 'in_stock';
+        let stockWarning = null;
+        if (book.stock === 0) {
+            stockStatus = 'out_of_stock';
+        } else if (book.stock <= 5) {
+            stockStatus = 'low_stock';
+            stockWarning = `Only ${book.stock} left in stock!`;
+        }
+
         res.status(200).json({
             success: true,
             data: {
-                book
+                book,
+                stock: book.stock,
+                stockStatus,
+                stockWarning
             }
         });
 
@@ -293,6 +306,16 @@ const getBookByIdWithCart = async (req, res) => {
                 success: false,
                 message: 'Book not found'
             });
+        }
+
+        // Stock info and warning
+        let stockStatus = 'in_stock';
+        let stockWarning = null;
+        if (book.stock === 0) {
+            stockStatus = 'out_of_stock';
+        } else if (book.stock <= 5) {
+            stockStatus = 'low_stock';
+            stockWarning = `Only ${book.stock} left in stock!`;
         }
 
         // Get user's cart to check if book is already in cart
@@ -322,7 +345,10 @@ const getBookByIdWithCart = async (req, res) => {
             success: true,
             data: {
                 book,
-                cartInfo
+                cartInfo,
+                stock: book.stock,
+                stockStatus,
+                stockWarning
             }
         });
 
@@ -506,5 +532,5 @@ module.exports = {
     updateBook,
     deleteBook,
     toggleFeatured
-}; 
+};
 // Note: Ensure that the deleteFile function is implemented in your upload middleware to handle file deletions properly.
