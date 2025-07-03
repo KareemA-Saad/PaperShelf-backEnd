@@ -17,10 +17,10 @@ const updateUserProfile = async (req, res) => {
 
     // Update name (requires current password)
     if (req.body.name) {
-      if (!req.body.password) {
+      if (!req.body.currentPassword) {
         return res.status(400).json({ success: false, message: 'Current password is required to update name' });
       }
-      const isMatch = await user.comparePassword(req.body.password);
+      const isMatch = await user.comparePassword(req.body.currentPassword);
       if (!isMatch) {
         return res.status(400).json({ success: false, message: 'Current password is incorrect' });
       }
