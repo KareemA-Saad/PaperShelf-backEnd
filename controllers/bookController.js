@@ -507,3 +507,4 @@ module.exports = {
     deleteBook,
     toggleFeatured
 }; 
+// Note: Ensure that the deleteFile function is implemented in your upload middleware to handle file deletions properly.
