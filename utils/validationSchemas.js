@@ -689,17 +689,26 @@ const updateUserSchema = Joi.object({
         .when('name', { is: Joi.exist(), then: Joi.required() })
         .messages({ 'any.required': 'Current password is required to update name' }),
     oldPassword: Joi.string()
-        .when('newPassword', { is: Joi.exist(), then: Joi.required() })
+        .optional()
         .messages({ 'any.required': 'Old password is required to change password' }),
     newPassword: Joi.string()
         .min(8)
         .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/)
-        .when('oldPassword', { is: Joi.exist(), then: Joi.required() })
+        .optional()
         .messages({
             'string.min': 'Password must be at least 8 characters long',
             'string.pattern.base': 'Password must contain at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character (@$!%*?&)',
             'any.required': 'New password is required to change password'
         })
+}).custom((value, helpers) => {
+    // Custom validation to ensure both oldPassword and newPassword are provided together
+    if (value.newPassword && !value.oldPassword) {
+        return helpers.error('any.invalid', { message: 'Old password is required when setting a new password' });
+    }
+    if (value.oldPassword && !value.newPassword) {
+        return helpers.error('any.invalid', { message: 'New password is required when providing old password' });
+    }
+    return value;
 });
 
 module.exports = {
