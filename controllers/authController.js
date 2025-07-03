@@ -17,7 +17,7 @@ const generatePasswordResetOTP = () => {
 // Register user
 const register = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -37,6 +37,7 @@ const register = async (req, res) => {
       name,
       email,
       password,
+      role,
       emailVerificationToken,
       emailVerificationExpires
     });

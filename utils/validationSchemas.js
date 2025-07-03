@@ -28,6 +28,12 @@ const registerSchema = Joi.object({
             'string.min': 'Password must be at least 8 characters long',
             'string.pattern.base': 'Password must contain at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character (@$!%*?&)',
             'any.required': 'Password is required'
+        }),
+        role: Joi.string()
+        .valid('user', 'author')
+        .default('user')
+        .messages({
+            'any.only': 'Role must be either user or author'
         })
 });
 
