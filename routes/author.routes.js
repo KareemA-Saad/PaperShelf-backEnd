@@ -26,6 +26,14 @@ router.get(
   authorController.getMyBooks
 );
 
+// Get single book by ID (for the author)
+router.get(
+  '/books/:id',
+  authenticateUser,
+  authorizeRoles('author'),
+  authorController.getBookById
+);
+
 // Update book
 router.put(
   '/books/:id',

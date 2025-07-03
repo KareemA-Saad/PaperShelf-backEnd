@@ -3,8 +3,17 @@ const Book = require('../models/bookModel');
 
 
 // Create a new book
+
 exports.createBook = async (req, res) => {
   try {
+    // Check if body is empty
+    if (Object.keys(req.body).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No data provided'
+      });
+    }
+
     const {
       title,
       description,
@@ -21,7 +30,6 @@ exports.createBook = async (req, res) => {
       isFeatured
     } = req.body;
 
-    // ISBN validation
     const existingBook = await Book.findOne({ isbn });
     if (existingBook) {
       return res.status(400).json({
@@ -45,14 +53,14 @@ exports.createBook = async (req, res) => {
       isBestseller,
       isFeatured,
       author: req.user._id,
-      isApproved: false     // Default to false, needs admin approval
+      isApproved: false
     });
 
     await book.save();
     res.status(201).json({ success: true, data: book });
 
   } catch (error) {
-    console.error(error);
+    console.error('❌ Error in createBook:', error);
     res.status(500).json({ success: false, message: 'Something went wrong' });
   }
 };
@@ -75,6 +83,20 @@ exports.getMyBooks = async (req, res) => {
   }
 };
 
+// Get a single book by ID (for the author)
+exports.getBookById = async (req, res) => {
+  try {
+    const book = await Book.findOne({ _id: req.params.id, author: req.user._id });
+
+    if (!book) {
+      return res.status(404).json({ success: false, message: 'Book not found' });
+    }
+
+    res.status(200).json({ success: true, data: book });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
+};
 
 // Update a book
 
