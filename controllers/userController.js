@@ -81,7 +81,14 @@ const deleteMe = async (req, res) => {
 const getAllUsers = async (req, res) => {
   try {
     const users = await require('../models/userModel').find().select('-password');
-    res.json({ success: true, users });
+
+    // Add isSuperAdmin flag to each user for frontend use
+    const usersWithSuperAdminFlag = users.map(user => ({
+      ...user.toObject(),
+      isSuperAdmin: isSuperAdmin(user.email)
+    }));
+
+    res.json({ success: true, users: usersWithSuperAdminFlag });
   } catch (error) {
     res.status(500).json({ success: false, message: "Failed to fetch users" });
   }
@@ -94,7 +101,14 @@ const getUserById = async (req, res) => {
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
-    res.json({ success: true, user });
+
+    // Add isSuperAdmin flag for frontend use
+    const userWithSuperAdminFlag = {
+      ...user.toObject(),
+      isSuperAdmin: isSuperAdmin(user.email)
+    };
+
+    res.json({ success: true, user: userWithSuperAdminFlag });
   } catch (error) {
     res.status(500).json({ success: false, message: "Failed to fetch user" });
   }
@@ -127,10 +141,17 @@ const updateUser = async (req, res) => {
 // Delete any user by ID (admin only)
 const deleteUserById = async (req, res) => {
   try {
-    const user = await require('../models/userModel').findByIdAndDelete(req.params.id);
+    const user = await require('../models/userModel').findById(req.params.id);
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
+
+    // Check if user is the superadmin (protected email)
+    if (user.email === process.env.SUPERADMIN_EMAIL) {
+      return res.status(403).json({ success: false, message: "Cannot delete superadmin" });
+    }
+
+    await user.deleteOne();
     res.status(200).json({ success: true, message: "User deleted successfully" });
   } catch (error) {
     res.status(500).json({ success: false, message: "Failed to delete user" });
@@ -213,7 +234,7 @@ const rejectBook = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Book is already approved, cannot reject' });
     }
 
-  
+
     await book.deleteOne();
 
     res.json({ success: true, message: 'Book has been rejected and removed' });
@@ -295,6 +316,11 @@ const getAllAuthors = async (req, res) => {
   }
 };
 
+// Helper function to check if user is superadmin
+const isSuperAdmin = (email) => {
+  return email === process.env.SUPERADMIN_EMAIL;
+};
+
 module.exports = {
   updateUserProfile,
   getAllUsers,
@@ -303,13 +329,13 @@ module.exports = {
   getUserById,
   deleteUserById,
   changeUserRole,
-   getAllAuthors,
+  getAllAuthors,
   getPendingBooks, // Get all pending books
   approveBook,
   rejectBook,
   getPendingDeleteBooks,
   approveBookDeletion,
   rejectBookDeletion,
-
+  isSuperAdmin, // Export helper function for use in other modules
 };
 
