@@ -124,15 +124,7 @@ const createBookSchema = Joi.object({
             'any.required': 'Title is required'
         }),
 
-    author: Joi.string()
-        .min(1)
-        .max(100)
-        .required()
-        .messages({
-            'string.min': 'Author must be at least 1 character long',
-            'string.max': 'Author cannot exceed 100 characters',
-            'any.required': 'Author is required'
-        }),
+    
 
     description: Joi.string()
         .min(10)
@@ -195,13 +187,12 @@ const createBookSchema = Joi.object({
         }),
 
     coverImage: Joi.string()
-        .uri()
         .messages({
             'string.uri': 'Cover image must be a valid URL'
         }),
 
     images: Joi.array()
-        .items(Joi.string().uri())
+        .items(Joi.string())
         .default([])
         .messages({
             'array.base': 'Images must be an array',
@@ -238,13 +229,7 @@ const updateBookSchema = Joi.object({
             'string.max': 'Title cannot exceed 200 characters'
         }),
 
-    author: Joi.string()
-        .min(1)
-        .max(100)
-        .messages({
-            'string.min': 'Author must be at least 1 character long',
-            'string.max': 'Author cannot exceed 100 characters'
-        }),
+   
 
     description: Joi.string()
         .min(10)
@@ -298,13 +283,12 @@ const updateBookSchema = Joi.object({
         }),
 
     coverImage: Joi.string()
-        .uri()
         .messages({
             'string.uri': 'Cover image must be a valid URL'
         }),
 
     images: Joi.array()
-        .items(Joi.string().uri())
+        .items(Joi.string())
         .messages({
             'array.base': 'Images must be an array',
             'string.uri': 'Each image must be a valid URL'
