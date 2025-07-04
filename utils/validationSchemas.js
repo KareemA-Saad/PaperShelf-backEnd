@@ -29,7 +29,7 @@ const registerSchema = Joi.object({
             'string.pattern.base': 'Password must contain at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character (@$!%*?&)',
             'any.required': 'Password is required'
         }),
-        role: Joi.string()
+    role: Joi.string()
         .valid('user', 'author')
         .default('user')
         .messages({
@@ -124,15 +124,7 @@ const createBookSchema = Joi.object({
             'any.required': 'Title is required'
         }),
 
-    author: Joi.string()
-        .min(1)
-        .max(100)
-        .required()
-        .messages({
-            'string.min': 'Author must be at least 1 character long',
-            'string.max': 'Author cannot exceed 100 characters',
-            'any.required': 'Author is required'
-        }),
+    
 
     description: Joi.string()
         .min(10)
@@ -195,13 +187,12 @@ const createBookSchema = Joi.object({
         }),
 
     coverImage: Joi.string()
-        .uri()
         .messages({
             'string.uri': 'Cover image must be a valid URL'
         }),
 
     images: Joi.array()
-        .items(Joi.string().uri())
+        .items(Joi.string())
         .default([])
         .messages({
             'array.base': 'Images must be an array',
@@ -238,13 +229,7 @@ const updateBookSchema = Joi.object({
             'string.max': 'Title cannot exceed 200 characters'
         }),
 
-    author: Joi.string()
-        .min(1)
-        .max(100)
-        .messages({
-            'string.min': 'Author must be at least 1 character long',
-            'string.max': 'Author cannot exceed 100 characters'
-        }),
+   
 
     description: Joi.string()
         .min(10)
@@ -298,13 +283,12 @@ const updateBookSchema = Joi.object({
         }),
 
     coverImage: Joi.string()
-        .uri()
         .messages({
             'string.uri': 'Cover image must be a valid URL'
         }),
 
     images: Joi.array()
-        .items(Joi.string().uri())
+        .items(Joi.string())
         .messages({
             'array.base': 'Images must be an array',
             'string.uri': 'Each image must be a valid URL'
@@ -679,6 +663,36 @@ const bookSearchSchema = Joi.object({
         })
 });
 
+// User profile update schema
+const updateUserSchema = Joi.object({
+    name: Joi.string()
+        .min(2)
+        .max(50)
+        .optional(),
+    currentPassword: Joi.string()
+        .when('name', { is: Joi.exist(), then: Joi.required() })
+        .when('newPassword', { is: Joi.exist(), then: Joi.required() })
+        .messages({ 'any.required': 'Current password is required for any changes' }),
+    newPassword: Joi.string()
+        .min(8)
+        .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/)
+        .optional()
+        .messages({
+            'string.min': 'Password must be at least 8 characters long',
+            'string.pattern.base': 'Password must contain at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character (@$!%*?&)',
+            'any.required': 'New password is required to change password'
+        }),
+    confirmNewPassword: Joi.string()
+        .when('newPassword', { is: Joi.exist(), then: Joi.required() })
+        .messages({ 'any.required': 'Password confirmation is required' })
+}).custom((value, helpers) => {
+    // Custom validation for password confirmation
+    if (value.newPassword && value.confirmNewPassword && value.newPassword !== value.confirmNewPassword) {
+        return helpers.error('any.invalid', { message: 'New password and confirmation password do not match' });
+    }
+    return value;
+});
+
 module.exports = {
     registerSchema,
     loginSchema,
@@ -696,5 +710,6 @@ module.exports = {
     updateOrderStatusSchema,
     validateCheckoutSchema,
     processCheckoutSchema,
-    processPaymentSchema
-};//
+    processPaymentSchema,
+    updateUserSchema
+};

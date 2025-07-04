@@ -3,23 +3,27 @@ const express = require("express");
 const connectDB = require("./config/db");
 const userRoute = require("./routes/userRoute");
 const authRoute = require("./routes/authRoute");
+const authorRoute = require("./routes/author.routes");
 const bookRoute = require("./routes/bookRoute");
+const cartRoute = require("./routes/cartRoute");
 const errorHandler = require("./middlewares/errorHandler");
 const logger = require("./middlewares/logger");
 const { handleUploadError } = require("./middlewares/upload");
-const wishlistRoute = require('./routes/wishlistRoute');
-const reviewRoute = require('./routes/reviewRoute');
-const cors = require('cors');
+const wishlistRoute = require("./routes/wishlistRoute");
+const reviewRoute = require("./routes/reviewRoute");
+const paypalRoute = require("./routes/paypalRoute");
+const cors = require("cors");
 const app = express();
 connectDB();
 
-app.use(cors({
-  origin: 'http://localhost:4200',
-  methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
-}));
-
+app.use(
+  cors({
+    origin: "http://localhost:4200",
+    methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+  })
+);
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -28,7 +32,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(logger);
 
 // Serve static files (uploaded images)
-app.use('/uploads', express.static('uploads'));
+app.use("/uploads", express.static("uploads"));
 
 // Health check route
 app.get("/", (req, res) => {
@@ -48,11 +52,23 @@ app.use("/api/v1/users", userRoute);
 // Book routes
 app.use("/api/v1/books", bookRoute);
 
+//  Author routes
+app.use("/api/v1/author", authorRoute);
+
 // Wishlist routes
-app.use('/api/wishlist', wishlistRoute);
+app.use("/api/wishlist", wishlistRoute);
 
 // Review routes
-app.use('/api/reviews', reviewRoute);
+app.use("/api/reviews", reviewRoute);
+
+app.use("/api/cart", cartRoute);
+
+//  Upload routes
+const uploadRoutes = require("./routes/uploadRoutes");
+app.use("/api/v1/upload", uploadRoutes);
+
+// PayPal routes
+app.use("/api/paypal", paypalRoute);
 
 // Upload error handling middleware
 app.use(handleUploadError);
