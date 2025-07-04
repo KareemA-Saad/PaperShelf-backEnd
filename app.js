@@ -24,6 +24,7 @@ app.use(
     credentials: true,
   })
 );
+
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -69,6 +70,12 @@ app.use("/api/v1/upload", uploadRoutes);
 
 // PayPal routes
 app.use("/api/paypal", paypalRoute);
+
+app.use('/api/cart', cartRoute);
+
+//  Upload routes
+const uploadRoutes = require('./routes/uploadRoutes');
+app.use('/api/v1/upload', uploadRoutes);
 
 // Upload error handling middleware
 app.use(handleUploadError);
