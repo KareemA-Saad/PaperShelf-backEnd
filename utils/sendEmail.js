@@ -79,6 +79,24 @@ const emailTemplates = {
         <p>Best regards,<br>The PaperShelf Team</p>
       </div>
     `
+  }),
+
+  // Password changed notification template
+  passwordChangedNotification: (name, resetLink) => ({
+    subject: 'Your Password Was Changed',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">Password Changed</h2>
+        <p>Hi ${name},</p>
+        <p>Your password was recently changed. If this was you, you can safely ignore this email.</p>
+        <p>If you did <b>not</b> change your password, please reset your password immediately using the link below:</p>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${resetLink}" style="background-color: #dc3545; color: #fff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-size: 18px;">Reset Password</a>
+        </div>
+        <p>If you have any questions, please contact our support team.</p>
+        <p>Best regards,<br>The PaperShelf Team</p>
+      </div>
+    `
   })
 };
 
