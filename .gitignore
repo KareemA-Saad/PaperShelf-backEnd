@@ -1,5 +1,6 @@
 # Node modules
 node_modules
+node_modules/
 
 # Environment variables
 #.env
@@ -25,4 +26,5 @@ Thumbs.db
 coverage/
 
 # Misc
-*.local
+*.local 
+uploads/
