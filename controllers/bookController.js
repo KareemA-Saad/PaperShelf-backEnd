@@ -1,6 +1,8 @@
 const Book = require('../models/bookModel');
 const Cart = require('../models/cartModel');
 const { generateFileUrl, deleteFile } = require('../middlewares/upload');
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+require('dotenv').config();
 
 // Get all books with filtering, sorting, and pagination
 const getAllBooks = async (req, res) => {
@@ -521,6 +523,59 @@ const toggleFeatured = async (req, res) => {
     }
 };
 
+
+//generateBookSummary
+const axios = require('axios');
+const getFormattedSummary = async (req, res) => {
+  try {
+    const bookId = req.params.id;
+    const book = await Book.findById(bookId);
+    if (!book) return res.status(404).json({ message: 'Book not found' });
+
+    const { isbn, title } = book;
+
+    // 🔍 Get book description
+    const googleUrl = `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`;
+    const response = await fetch(googleUrl);
+    const data = await response.json();
+
+    const item = data.items?.[0];
+    const description = item?.volumeInfo?.description || 'No description available.';
+    const author = item?.volumeInfo?.authors?.[0] || 'Unknown Author';
+
+    // ✏️ Create full prompt
+    const prompt = `
+📘 AI Summary
+“${title}” by ${author}
+
+Write a long, in-depth summary of the book below that explains the key points, main storyline, and overall themes.
+
+Book Description:
+${description}
+    `.trim();
+
+    // 🔁 Send to Hugging Face Model
+     const hfRes = await fetch('https://api-inference.huggingface.co/models/facebook/bart-large-cnn', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.HF_API_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ inputs: prompt }),
+    });
+
+    const result = await hfRes.json();
+
+    const summary = result[0]?.summary_text || 'No summary generated';
+
+    return res.json({ summary });
+  } catch (error) {
+    console.error('AI Summary Error:', error.message);
+    return res.status(500).json({ message: 'Failed to generate summary' });
+  }
+};
+
+
 module.exports = {
     getAllBooks,
     searchBooks,
@@ -531,6 +586,8 @@ module.exports = {
     getBookByIdWithCart,
     updateBook,
     deleteBook,
-    toggleFeatured
+    toggleFeatured, 
+    getFormattedSummary
+    
 };
 // Note: Ensure that the deleteFile function is implemented in your upload middleware to handle file deletions properly.
