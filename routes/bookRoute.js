@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const bookController = require('../controllers/bookController');
 
 // Import controllers
 const {
@@ -81,4 +82,9 @@ router.patch('/:id/featured',
     toggleFeatured
 );
 
-module.exports = router; 
+//ai model
+// routes/bookRoutes.js
+router.get('/:id/formatted-summary', bookController.getFormattedSummary);
+
+
+module.exports = router;
