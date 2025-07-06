@@ -1,7 +1,7 @@
 const nodemailer = require('nodemailer');
 
 const sendEmail = async (options) => {
-  // Create transporter
+  // Create transporter with SSL certificate handling
   const transporter = nodemailer.createTransport({
     host: process.env.EMAIL_HOST || 'smtp.gmail.com',
     port: process.env.EMAIL_PORT || 587,
@@ -10,11 +10,19 @@ const sendEmail = async (options) => {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
+    // Fix for self-signed certificate error
+    tls: {
+      rejectUnauthorized: false // Allow self-signed certificates
+    },
+    // Alternative SSL configuration
+    ssl: {
+      rejectUnauthorized: false
+    }
   });
 
   // Email options
   const mailOptions = {
-    from: `${process.env.FROM_NAME} <${process.env.EMAIL_USER}>`,
+    from: `${process.env.FROM_NAME || 'PaperShelf'} <${process.env.EMAIL_USER}>`,
     to: options.email,
     subject: options.subject,
     text: options.message,
@@ -76,24 +84,6 @@ const emailTemplates = {
         <p style="text-align: center; color: #666;">Enter this 6-digit code in the password reset page</p>
         <p>This code will expire in 10 minutes.</p>
         <p>If you didn't request this, please ignore this email.</p>
-        <p>Best regards,<br>The PaperShelf Team</p>
-      </div>
-    `
-  }),
-
-  // Password changed notification template
-  passwordChangedNotification: (name, resetLink) => ({
-    subject: 'Your Password Was Changed',
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #333;">Password Changed</h2>
-        <p>Hi ${name},</p>
-        <p>Your password was recently changed. If this was you, you can safely ignore this email.</p>
-        <p>If you did <b>not</b> change your password, please reset your password immediately using the link below:</p>
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="${resetLink}" style="background-color: #dc3545; color: #fff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-size: 18px;">Reset Password</a>
-        </div>
-        <p>If you have any questions, please contact our support team.</p>
         <p>Best regards,<br>The PaperShelf Team</p>
       </div>
     `

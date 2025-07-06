@@ -103,11 +103,15 @@ const processCheckout = async (req, res) => {
 
         // Calculate totals
         const subtotal = cart.totalAmount;
-        const shippingCost = 50;
+        const shippingCost = 50; // Or your shipping logic
         const totalAmount = subtotal + shippingCost;
+
+        // ✅ 1. إنشاء رقم طلب فريد
+        const orderNumber = Date.now() + '-' + Math.random().toString(36).substring(2, 9);
 
         // Create order
         const order = new Order({
+            orderNumber: orderNumber, // ✅ 2. إضافة رقم الطلب هنا
             user: req.user.id,
             items: orderItems,
             shippingAddress,
@@ -132,8 +136,8 @@ const processCheckout = async (req, res) => {
             success: true,
             message: 'Checkout completed successfully',
             data: {
-                order: populatedOrder,
-                orderNumber: order.orderNumber
+                order: populatedOrder
+                // لا داعي لإرسال رقم الطلب هنا لأنه موجود داخل الكائن `populatedOrder`
             }
         });
 
