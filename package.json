@@ -8,8 +8,8 @@
     "dev": "nodemon app.js"
   },
   "dependencies": {
-    "axios": "^1.10.0",
     "@paypal/checkout-server-sdk": "^1.0.3",
+    "axios": "^1.10.0",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
