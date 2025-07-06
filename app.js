@@ -6,6 +6,7 @@ const authRoute = require("./routes/authRoute");
 const authorRoute = require("./routes/author.routes");
 const bookRoute = require("./routes/bookRoute");
 const cartRoute = require("./routes/cartRoute");
+const checkoutRoute = require("./routes/checkoutRoute");
 const errorHandler = require("./middlewares/errorHandler");
 const logger = require("./middlewares/logger");
 const { handleUploadError } = require("./middlewares/upload");
@@ -61,8 +62,10 @@ app.use("/api/wishlist", wishlistRoute);
 
 // Review routes
 app.use("/api/reviews", reviewRoute);
-
+// Cart routes
 app.use("/api/cart", cartRoute);
+// Checkout routes
+app.use("/api/checkout", checkoutRoute);
 
 //  Upload routes
 const uploadRoutes = require("./routes/uploadRoutes");
