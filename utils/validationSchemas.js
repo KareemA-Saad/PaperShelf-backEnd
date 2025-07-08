@@ -124,7 +124,7 @@ const createBookSchema = Joi.object({
             'any.required': 'Title is required'
         }),
 
-    
+
 
     description: Joi.string()
         .min(10)
@@ -216,7 +216,11 @@ const createBookSchema = Joi.object({
         .default(false),
 
     isFeatured: Joi.boolean()
-        .default(false)
+        .default(false),
+
+    isApproved: Joi.boolean()
+        .default(false),
+
 });
 
 // Book update schema (allows partial updates)
@@ -229,7 +233,7 @@ const updateBookSchema = Joi.object({
             'string.max': 'Title cannot exceed 200 characters'
         }),
 
-   
+
 
     description: Joi.string()
         .min(10)
@@ -307,7 +311,10 @@ const updateBookSchema = Joi.object({
 
     isBestseller: Joi.boolean(),
 
-    isFeatured: Joi.boolean()
+    isFeatured: Joi.boolean(),
+    
+    isApproved: Joi.boolean()
+    .default(false),
 });
 
 // Book listing query parameters schema

@@ -214,7 +214,8 @@ const createBook = async (req, res) => {
         // Handle cover image - either uploaded file or URL
         if (req.file) {
             // File was uploaded via Multer
-            bookData.coverImage = generateFileUrl(req.file.filename);
+            // bookData.coverImage = generateFileUrl(req.file.filename);
+            bookData.coverImage = `uploads/book-covers/${req.file.filename}`;
         } else if (req.body.coverImageUrl) {
             // URL was provided directly
             bookData.coverImage = req.body.coverImageUrl;
@@ -379,15 +380,18 @@ const updateBook = async (req, res) => {
         // Handle cover image update
         if (req.file) {
             // Delete old cover image file if it exists
-            if (book.coverImage && book.coverImage.includes('/uploads/')) {
+            // if (book.coverImage && book.coverImage.includes('/uploads/')) {
+            if (book.coverImage && book.coverImage.includes('uploads/')) {
                 const oldFilename = book.coverImage.split('/').pop();
                 deleteFile(oldFilename);
             }
             // Set new cover image
-            updateData.coverImage = generateFileUrl(req.file.filename);
+            // updateData.coverImage = generateFileUrl(req.file.filename);
+            updateData.coverImage = `uploads/book-covers/${req.file.filename}`;
         } else if (req.body.coverImageUrl) {
             // Delete old cover image file if it exists
-            if (book.coverImage && book.coverImage.includes('/uploads/')) {
+            // if (book.coverImage && book.coverImage.includes('/uploads/')) {
+            if (book.coverImage && book.coverImage.includes('uploads/')) {
                 const oldFilename = book.coverImage.split('/').pop();
                 deleteFile(oldFilename);
             }
@@ -400,7 +404,8 @@ const updateBook = async (req, res) => {
             // Delete old image files if they exist
             if (book.images && book.images.length > 0) {
                 book.images.forEach(imageUrl => {
-                    if (imageUrl.includes('/uploads/')) {
+                    // if (imageUrl.includes('/uploads/')) {
+                    if (imageUrl.includes('uploads/')) {
                         const oldFilename = imageUrl.split('/').pop();
                         deleteFile(oldFilename);
                     }
@@ -412,7 +417,8 @@ const updateBook = async (req, res) => {
             // Delete old image files if they exist
             if (book.images && book.images.length > 0) {
                 book.images.forEach(imageUrl => {
-                    if (imageUrl.includes('/uploads/')) {
+                    // if (imageUrl.includes('/uploads/')) {
+                    if (imageUrl.includes('uploads/')) {
                         const oldFilename = imageUrl.split('/').pop();
                         deleteFile(oldFilename);
                     }
@@ -461,14 +467,16 @@ const deleteBook = async (req, res) => {
         }
 
         // Delete associated image files
-        if (book.coverImage && book.coverImage.includes('/uploads/')) {
+        // if (book.coverImage && book.coverImage.includes('/uploads/')) {
+        if (book.coverImage && book.coverImage.includes('uploads/')) {
             const filename = book.coverImage.split('/').pop();
             deleteFile(filename);
         }
 
         if (book.images && book.images.length > 0) {
             book.images.forEach(imageUrl => {
-                if (imageUrl.includes('/uploads/')) {
+                // if (imageUrl.includes('/uploads/')) {
+                if (imageUrl.includes('uploads/')) {
                     const filename = imageUrl.split('/').pop();
                     deleteFile(filename);
                 }
