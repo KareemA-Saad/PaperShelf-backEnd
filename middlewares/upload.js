@@ -92,11 +92,14 @@ const handleUploadError = (error, req, res, next) => {
 };
 
 // Helper function to generate file URL
+// const generateFileUrl = (filename) => {
+//     if (!filename) return null;
+//     return `${process.env.BASE_URL || 'http://localhost:3000'}/uploads/book-covers/${filename}`;
+// };
 const generateFileUrl = (filename) => {
     if (!filename) return null;
-    return `${process.env.BASE_URL || 'http://localhost:3000'}/uploads/book-covers/${filename}`;
+    return `uploads/book-covers/${filename}`;
 };
-
 // Helper function to delete file
 const deleteFile = (filename) => {
     if (!filename) return;
