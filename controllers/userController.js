@@ -80,6 +80,7 @@ const deleteMe = async (req, res) => {
 // List all users (admin only)
 const getAllUsers = async (req, res) => {
   try {
+
     const {
       page = 1,
       limit = 10,
@@ -146,6 +147,20 @@ const getAllUsers = async (req, res) => {
       success: false,
       message: error.message || "Failed to fetch users"
     });
+
+    
+   // const users = await require('../models/userModel').find().select('-password');
+
+    // Add isSuperAdmin flag to each user for frontend use
+    //const usersWithSuperAdminFlag = users.map(user => ({
+   //   ...user.toObject(),
+    //  isSuperAdmin: isSuperAdmin(user.email)
+  //  }));
+
+   // res.json({ success: true, users: usersWithSuperAdminFlag });
+ // } catch (error) {
+  //  res.status(500).json({ success: false, message: "Failed to fetch users" });
+
   }
 };
 
@@ -177,7 +192,9 @@ const updateUser = async (req, res) => {
         name: req.body.name,
         email: req.body.email,
         role: req.body.role,
+
         isActive: req.body.isActive,
+
         isEmailVerified: req.body.isEmailVerified,
       },
       { new: true, runValidators: true }
@@ -285,12 +302,14 @@ const rejectBook = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Book not found' });
     }
 
+
     if (book.isApproved) {
       return res.status(400).json({ success: false, message: 'Book is already approved, cannot reject' });
     }
 
 
     await book.deleteOne();
+
 
     res.json({ success: true, message: 'Book has been rejected and removed' });
   } catch (err) {

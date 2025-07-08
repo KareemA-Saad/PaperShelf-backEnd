@@ -216,7 +216,12 @@ const createBookSchema = Joi.object({
         .default(false),
 
     isFeatured: Joi.boolean()
-        .default(false)
+        .default(false),
+
+    isApproved: Joi.boolean()
+        .default(false),
+
+
 });
 
 // Book update schema (allows partial updates)
@@ -317,6 +322,7 @@ const updateBookSchema = Joi.object({
 
     isApproved: Joi.boolean().optional(),
     pendingDelete: Joi.boolean().optional()
+
 });
 
 // Book listing query parameters schema
@@ -672,6 +678,7 @@ const bookSearchSchema = Joi.object({
         })
 });
 
+
 // User profile/admin update schema
 const updateUserSchema = (isAdmin = false) => {
     let schema = Joi.object({
@@ -725,5 +732,5 @@ module.exports = {
     validateCheckoutSchema,
     processCheckoutSchema,
     processPaymentSchema,
-    updateUserSchema // now a function
+    updateUserSchema 
 };
