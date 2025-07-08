@@ -22,7 +22,8 @@ const getAllBooks = async (req, res) => {
         } = req.query;
 
         // Build filter object
-        const filter = {};
+
+        const filter = { isApproved : true };
 
         if (category) filter.category = category;
         if (author) {

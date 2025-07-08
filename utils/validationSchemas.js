@@ -221,6 +221,7 @@ const createBookSchema = Joi.object({
     isApproved: Joi.boolean()
         .default(false),
 
+
 });
 
 // Book update schema (allows partial updates)
@@ -312,9 +313,16 @@ const updateBookSchema = Joi.object({
     isBestseller: Joi.boolean(),
 
     isFeatured: Joi.boolean(),
-    
-    isApproved: Joi.boolean()
-    .default(false),
+
+    author: Joi.string()
+        .optional()
+        .messages({
+            'string.base': 'Author must be a string'
+        }),
+
+    isApproved: Joi.boolean().optional(),
+    pendingDelete: Joi.boolean().optional()
+
 });
 
 // Book listing query parameters schema
@@ -670,35 +678,41 @@ const bookSearchSchema = Joi.object({
         })
 });
 
-// User profile update schema
-const updateUserSchema = Joi.object({
-    name: Joi.string()
-        .min(2)
-        .max(50)
-        .optional(),
-    currentPassword: Joi.string()
-        .when('name', { is: Joi.exist(), then: Joi.required() })
-        .when('newPassword', { is: Joi.exist(), then: Joi.required() })
-        .messages({ 'any.required': 'Current password is required for any changes' }),
-    newPassword: Joi.string()
-        .min(8)
-        .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/)
-        .optional()
-        .messages({
-            'string.min': 'Password must be at least 8 characters long',
-            'string.pattern.base': 'Password must contain at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character (@$!%*?&)',
-            'any.required': 'New password is required to change password'
+
+// User profile/admin update schema
+const updateUserSchema = (isAdmin = false) => {
+    let schema = Joi.object({
+        name: Joi.string().min(2).max(50),
+        newPassword: Joi.string()
+            .min(8)
+            .pattern(/^(?=.[a-z])(?=.[A-Z])(?=.\d)(?=.[@$!%?&])[A-Za-z\d@$!%?&]{8,}$/)
+            .messages({
+                'string.min': 'Password must be at least 8 characters long',
+                'string.pattern.base': 'Password must contain at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character (@$!%*?&)',
+            }),
+        confirmNewPassword: Joi.string().valid(Joi.ref('newPassword')).messages({
+            'any.only': 'Password confirmation does not match',
         }),
-    confirmNewPassword: Joi.string()
-        .when('newPassword', { is: Joi.exist(), then: Joi.required() })
-        .messages({ 'any.required': 'Password confirmation is required' })
-}).custom((value, helpers) => {
-    // Custom validation for password confirmation
-    if (value.newPassword && value.confirmNewPassword && value.newPassword !== value.confirmNewPassword) {
-        return helpers.error('any.invalid', { message: 'New password and confirmation password do not match' });
+        isEmailVerified: Joi.boolean(),
+        isActive: Joi.boolean(),
+        role: Joi.string().valid('user', 'admin', 'author'),
+    });
+
+    if (!isAdmin) {
+        schema = schema.append({
+            currentPassword: Joi.string().when('name', {
+                is: Joi.exist(),
+                then: Joi.required(),
+            }).when('newPassword', {
+                is: Joi.exist(),
+                then: Joi.required(),
+            }).messages({
+                'any.required': 'Current password is required for any changes',
+            }),
+        });
     }
-    return value;
-});
+    return schema;
+};
 
 module.exports = {
     registerSchema,
@@ -718,5 +732,5 @@ module.exports = {
     validateCheckoutSchema,
     processCheckoutSchema,
     processPaymentSchema,
-    updateUserSchema
+    updateUserSchema 
 };
