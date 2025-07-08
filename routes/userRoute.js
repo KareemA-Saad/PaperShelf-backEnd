@@ -32,7 +32,10 @@ router.patch('/:id/role', authenticateUser, authorizeRoles('admin'), changeUserR
 
 // User routes
 router.patch('/profile/:id', authenticateUser, validate(updateUserSchema), updateUserProfile); // User profile update (name/password)
-router.patch('/:id', authenticateUser, authorizeRoles('admin'), validate(updateUserSchema), updateUser); // Admin can update any user
+router.patch('/:id', authenticateUser, authorizeRoles('admin'), (req, res, next) => {
+  const isAdmin = req.user?.role === 'admin';
+  validate(updateUserSchema(isAdmin))(req, res, next);
+}, updateUser);
 router.delete('/me', authenticateUser, deleteMe);
 
 // ******************Admin features in book and author*****************************************

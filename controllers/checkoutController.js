@@ -226,7 +226,7 @@ const processPayment = async (req, res) => {
             // Update order payment status
             order.paymentStatus = 'paid';
             order.paymentId = paymentResult.paymentId;
-            order.orderStatus = 'confirmed';
+            order.orderStatus = 'pending';
             await order.save();
 
             const updatedOrder = await Order.findById(orderId)
@@ -328,5 +328,5 @@ module.exports = {
     processCheckout,
     processPayment,
     getShippingOptions
-}; 
+};
 // Note: 

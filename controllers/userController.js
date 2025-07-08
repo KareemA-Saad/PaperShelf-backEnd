@@ -80,17 +80,72 @@ const deleteMe = async (req, res) => {
 // List all users (admin only)
 const getAllUsers = async (req, res) => {
   try {
-    const users = await require('../models/userModel').find().select('-password');
+    const {
+      page = 1,
+      limit = 10,
+      q,
+      role,
+      isActive,
+      isEmailVerified
+    } = req.query;
 
-    // Add isSuperAdmin flag to each user for frontend use
-    const usersWithSuperAdminFlag = users.map(user => ({
-      ...user.toObject(),
-      isSuperAdmin: isSuperAdmin(user.email)
-    }));
+    const filter = {};
 
-    res.json({ success: true, users: usersWithSuperAdminFlag });
+    // Search by name, email, role
+    if (q) {
+      filter.$or = [
+        { name: { $regex: q, $options: 'i' } },
+        { email: { $regex: q, $options: 'i' } },
+        { role: { $regex: q, $options: 'i' } },
+      ];
+    }
+
+    // Filter by role
+    if (role) filter.role = role;
+
+    // Filter by active status (true/false)
+    if (isActive !== undefined) {
+      filter.isActive = isActive === 'true';
+    }
+
+    // Filter by email verification status (true/false)
+    if (isEmailVerified !== undefined) {
+      filter.isEmailVerified = isEmailVerified === 'true';
+    }
+
+    // Pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Fetch users with filter, pagination & sort
+    const users = await require('../models/userModel').find(filter)
+      .select('-password')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    // Count total documents matching filter
+    const totalUsers = await require('../models/userModel').countDocuments(filter);
+    const totalPages = Math.ceil(totalUsers / parseInt(limit));
+
+    res.status(200).json({
+      success: true,
+      users,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages,
+        totalUsers,
+        hasNextPage: parseInt(page) < totalPages,
+        hasPrevPage: parseInt(page) > 1,
+        limit: parseInt(limit)
+      }
+    });
+
   } catch (error) {
-    res.status(500).json({ success: false, message: "Failed to fetch users" });
+    console.error("[API Error] getAllUsers failed:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch users"
+    });
   }
 };
 
@@ -122,7 +177,7 @@ const updateUser = async (req, res) => {
         name: req.body.name,
         email: req.body.email,
         role: req.body.role,
-        isActive: req.body.status,
+        isActive: req.body.isActive,
         isEmailVerified: req.body.isEmailVerified,
       },
       { new: true, runValidators: true }
