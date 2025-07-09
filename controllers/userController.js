@@ -2,6 +2,7 @@
 //=========================================== User features ============================================
 
 const User = require('../models/userModel');
+const Book = require('../models/bookModel.js');
 const { sendEmail, emailTemplates } = require('../utils/sendEmail');
 
 // Update user (name or password)
@@ -55,7 +56,7 @@ const updateUserProfile = async (req, res) => {
       });
       return res.json({ success: true, message: 'Password updated successfully' });
     }
-
+    user.tokenVersion += 1;
     await user.save();
     res.json({ success: true, message: 'Profile updated successfully', user: { id: user._id, name: user.name, email: user.email } });
   } catch (error) {
@@ -118,14 +119,14 @@ const getAllUsers = async (req, res) => {
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     // Fetch users with filter, pagination & sort
-    const users = await require('../models/userModel').find(filter)
+    const users = await User.find(filter)
       .select('-password')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
 
     // Count total documents matching filter
-    const totalUsers = await require('../models/userModel').countDocuments(filter);
+    const totalUsers = await User.countDocuments(filter);
     const totalPages = Math.ceil(totalUsers / parseInt(limit));
 
     res.status(200).json({
@@ -149,7 +150,7 @@ const getAllUsers = async (req, res) => {
     });
 
 
-    // const users = await require('../models/userModel').find().select('-password');
+    // const users = await User.find().select('-password');
 
     // Add isSuperAdmin flag to each user for frontend use
     //const usersWithSuperAdminFlag = users.map(user => ({
@@ -167,7 +168,7 @@ const getAllUsers = async (req, res) => {
 // Get a user by ID (admin only)
 const getUserById = async (req, res) => {
   try {
-    const user = await require('../models/userModel').findById(req.params.id).select('-password');
+    const user = await User.findById(req.params.id).select('-password');
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
@@ -186,7 +187,7 @@ const getUserById = async (req, res) => {
 
 const updateUser = async (req, res) => {
   try {
-    const updatedUser = await require('../models/userModel').findByIdAndUpdate(
+    const updatedUser = await User.findByIdAndUpdate(
       req.params.id,
       {
         name: req.body.name,
@@ -196,6 +197,7 @@ const updateUser = async (req, res) => {
         isActive: req.body.isActive,
 
         isEmailVerified: req.body.isEmailVerified,
+        $inc: { tokenVersion: 1 }
       },
       { new: true, runValidators: true }
     ).select('-password');
@@ -213,7 +215,7 @@ const updateUser = async (req, res) => {
 // Delete any user by ID (admin only)
 const deleteUserById = async (req, res) => {
   try {
-    const user = await require('../models/userModel').findById(req.params.id);
+    const user = await User.findById(req.params.id);
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
@@ -234,7 +236,7 @@ const deleteUserById = async (req, res) => {
 // Get all pending books (isApproved: false)
 const getPendingBooks = async (req, res) => {
   try {
-    const Book = require('../models/bookModel.js'); // Ensure the Book model is imported
+    // Ensure the Book model is imported
     const pendingBooks = await Book.find({ isApproved: false }).populate('author', 'name email');
 
     res.status(200).json({
@@ -251,7 +253,7 @@ const getPendingBooks = async (req, res) => {
 // Approve a book by ID
 const approveBook = async (req, res) => {
   try {
-    const Book = require('../models/bookModel.js'); // Ensure the Book model is imported
+    // Ensure the Book model is imported
     const book = await Book.findById(req.params.id);
 
     if (!book) {
@@ -350,7 +352,7 @@ const rejectBookDeletion = async (req, res) => {
 // Get all authors (public endpoint - no authentication required)
 const getAllAuthors = async (req, res) => {
   try {
-    const authors = await require('../models/userModel')
+    const authors = await User
       .find({ role: 'author', isActive: true })
       .select('name email avatar createdAt')
       .sort({ createdAt: -1 });

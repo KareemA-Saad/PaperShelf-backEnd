@@ -1,21 +1,21 @@
 const jwt = require('jsonwebtoken');
 
 // Generate access token (short-lived)
-const generateAccessToken = (userId, role) => {
+const generateAccessToken = (userId, role, tokenVersion) => {
     return jwt.sign(
-        { userId, role },
-        process.env.JWT_ACCESS_SECRET || 'your_access_secret',
-        { expiresIn: '1h' }
+      { userId, role, tokenVersion },
+      process.env.JWT_ACCESS_SECRET || 'your_access_secret',
+      { expiresIn: '1h' }
     );
-};
+  };
 
 // Generate refresh token (longer-lived)
-const generateRefreshToken = (userId) => {
-    return jwt.sign(
-        { userId },
-        process.env.JWT_REFRESH_SECRET || 'your_refresh_secret',
-        { expiresIn: '1d' }
-    );
+const generateRefreshToken = (userId, tokenVersion) => {
+  return jwt.sign(
+    { userId, tokenVersion },
+    process.env.JWT_REFRESH_SECRET || 'your_refresh_secret',
+    { expiresIn: '1d' }
+  );
 };
 
 // Verify access token
@@ -37,12 +37,11 @@ const verifyRefreshToken = (token) => {
 };
 
 // Generate both tokens
-const generateTokens = (userId, role) => {
-    const accessToken = generateAccessToken(userId, role);
-    const refreshToken = generateRefreshToken(userId);
-
+const generateTokens = (user) => {
+    const accessToken = generateAccessToken(user._id, user.role, user.tokenVersion);
+    const refreshToken = generateRefreshToken(user._id, user.tokenVersion);
     return { accessToken, refreshToken };
-};
+  };
 
 module.exports = {
     generateAccessToken,

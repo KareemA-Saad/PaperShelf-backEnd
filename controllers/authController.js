@@ -51,7 +51,7 @@ const register = async (req, res) => {
     });
 
     // Generate tokens (but don't verify email yet)
-    const { accessToken, refreshToken } = generateTokens(user._id, user.role);
+    const { accessToken, refreshToken } = generateTokens(user);
 
     // Save refresh token to user
     user.refreshToken = refreshToken;
@@ -87,7 +87,7 @@ const login = async (req, res) => {
     const { email, password } = req.body;
 
     // Check if user exists and password is correct
-    const user = await User.findOne({ email }).select('+password');
+    const user = await User.findOne({ email }).select('+password +tokenVersion');
     if (!user || !(await user.comparePassword(password))) {
       return res.status(401).json({
         success: false,
@@ -129,7 +129,7 @@ const login = async (req, res) => {
     user.lastLogin = new Date();
 
     // Generate tokens
-    const { accessToken, refreshToken } = generateTokens(user._id, user.role);
+    const { accessToken, refreshToken } = generateTokens(user);
 
     // Save refresh token to user
     user.refreshToken = refreshToken;
@@ -392,8 +392,15 @@ const refreshToken = async (req, res) => {
       });
     }
 
+    if (user.tokenVersion !== decoded.tokenVersion) {
+      return res.status(401).json({
+        success: false,
+        message: 'Token version mismatch. Please login again.'
+      });
+    }
+    
     // Generate new tokens
-    const { accessToken, refreshToken: newRefreshToken } = generateTokens(user._id, user.role);
+    const { accessToken, refreshToken: newRefreshToken } = generateTokens(user);
 
     // Update refresh token
     user.refreshToken = newRefreshToken;

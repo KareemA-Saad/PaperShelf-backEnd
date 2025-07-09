@@ -21,11 +21,17 @@ const authenticateUser = async (req, res, next) => {
     const decoded = verifyAccessToken(token);
 
     // Find user
-    const user = await User.findById(decoded.userId);
+    const user = await User.findById(decoded.userId).select('+tokenVersion +refreshToken');
     if (!user) {
       return res.status(401).json({
         success: false,
         message: 'User not found'
+      });
+    }
+    if (user.tokenVersion !== decoded.tokenVersion) {
+      return res.status(401).json({
+        success: false,
+        message: 'Please login again'
       });
     }
 
@@ -33,7 +39,7 @@ const authenticateUser = async (req, res, next) => {
     if (!user.isActive) {
       return res.status(401).json({
         success: false,
-        message: 'Account is deactivated'
+        message: 'Token invalidated. Account is deactivated'
       });
     }
 
