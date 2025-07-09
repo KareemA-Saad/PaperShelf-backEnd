@@ -54,6 +54,9 @@ app.use("/api/v1/users", userRoute);
 // Book routes
 app.use("/api/v1/books", bookRoute);
 
+// Category routes
+app.use("/api/v1/categories", require("./routes/categoryRoute"));
+
 //  Author routes
 app.use("/api/v1/author", authorRoute);
 
