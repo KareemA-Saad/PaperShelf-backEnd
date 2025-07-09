@@ -148,18 +148,18 @@ const getAllUsers = async (req, res) => {
       message: error.message || "Failed to fetch users"
     });
 
-    
-   // const users = await require('../models/userModel').find().select('-password');
+
+    // const users = await require('../models/userModel').find().select('-password');
 
     // Add isSuperAdmin flag to each user for frontend use
     //const usersWithSuperAdminFlag = users.map(user => ({
-   //   ...user.toObject(),
+    //   ...user.toObject(),
     //  isSuperAdmin: isSuperAdmin(user.email)
-  //  }));
+    //  }));
 
-   // res.json({ success: true, users: usersWithSuperAdminFlag });
- // } catch (error) {
-  //  res.status(500).json({ success: false, message: "Failed to fetch users" });
+    // res.json({ success: true, users: usersWithSuperAdminFlag });
+    // } catch (error) {
+    //  res.status(500).json({ success: false, message: "Failed to fetch users" });
 
   }
 };
@@ -229,31 +229,6 @@ const deleteUserById = async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to delete user" });
   }
 };
-
-// Change user role (admin only)
-const changeUserRole = async (req, res) => {
-  try {
-    const { role } = req.body;
-    const validRoles = ['user', 'admin', 'author']; // Add more roles if needed
-
-    if (!validRoles.includes(role)) {
-      return res.status(400).json({ success: false, message: "Invalid role" });
-    }
-
-    const user = await require('../models/userModel').findById(req.params.id);
-    if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
-    }
-
-    user.role = role;
-    await user.save();
-
-    res.json({ success: true, message: `User role updated to ${role}` });
-  } catch (error) {
-    res.status(500).json({ success: false, message: "Failed to update user role" });
-  }
-};
-
 
 
 // Get all pending books (isApproved: false)
@@ -402,7 +377,6 @@ module.exports = {
   deleteMe,
   getUserById,
   deleteUserById,
-  changeUserRole,
   getAllAuthors,
   getPendingBooks, // Get all pending books
   approveBook,

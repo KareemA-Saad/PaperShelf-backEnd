@@ -13,7 +13,6 @@ const {
   updateUser,
   deleteMe,
   deleteUserById,
-  changeUserRole,
   getAllAuthors,
 } = require('../controllers/userController');
 
@@ -28,7 +27,7 @@ router.get('/authors', getAllAuthors);
 router.get('/', authenticateUser, authorizeRoles('admin'), getAllUsers);
 router.get('/:id', authenticateUser, authorizeRoles('admin'), getUserById);
 router.delete('/:id', authenticateUser, authorizeRoles('admin'), deleteUserById);
-router.patch('/:id/role', authenticateUser, authorizeRoles('admin'), changeUserRole);
+
 
 // User routes
 router.patch('/profile/:id', authenticateUser, validate(updateUserSchema), updateUserProfile); // User profile update (name/password)
