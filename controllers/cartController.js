@@ -141,10 +141,19 @@ const addToCart = async (req, res) => {
             cart.items[existingItemIndex].quantity = newBookQuantity;
         } else {
             // Add new item
+            // Calculate discounted price
+            let priceToUse;
+            if (typeof req.body.price === 'number') {
+                priceToUse = req.body.price;
+            } else {
+                priceToUse = book.discount > 0
+                    ? book.price * (1 - book.discount / 100)
+                    : book.price;
+            }
             cart.items.push({
                 book: bookId,
                 quantity: quantity,
-                priceAtTime: book.price
+                priceAtTime: priceToUse
             });
         }
 
