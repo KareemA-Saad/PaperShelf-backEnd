@@ -30,7 +30,10 @@ router.delete('/:id', authenticateUser, authorizeRoles('admin'), deleteUserById)
 
 
 // User routes
-router.patch('/profile/:id', authenticateUser, validate(updateUserSchema), updateUserProfile); // User profile update (name/password)
+router.patch('/profile/:id', authenticateUser, (req, res, next) => {
+  const isPasswordUpdate = !!req.body.newPassword;
+  return validate(updateUserSchema(false))(req, res, next);
+}, updateUserProfile);
 
 router.patch('/:id', authenticateUser, authorizeRoles('admin'), (req, res, next) => {
   const isAdmin = req.user?.role === 'admin';
