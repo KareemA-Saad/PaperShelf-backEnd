@@ -1,3 +1,4 @@
+require("dotenv").config(); 
 // Import the PayPal SDK
 const paypal = require("@paypal/checkout-server-sdk");
 
