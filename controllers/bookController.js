@@ -16,62 +16,54 @@ const getAllBooks = async (req, res) => {
             author,
             minPrice,
             maxPrice,
-            rating,
-            inStock,
-            discount
+            rating
         } = req.query;
 
-        // Build filter object
+        // Parse numbers
+        const min = minPrice ? parseFloat(minPrice) : 0;
+        const max = maxPrice ? parseFloat(maxPrice) : Number.MAX_SAFE_INTEGER;
+        const minRating = rating ? parseFloat(rating) : 0;
+        const maxRating = rating ? minRating + 0.99 : 5;
 
-        const filter = { isApproved : true };
-
-        if (category) filter.category = category;
+        // Build match object
+        const match = { isApproved: true };
+        if (category) match.category = category;
         if (author) {
-            // Support comma-separated list for multi-author search
-            const authors = author.split(',').map(a => a.trim());
-            filter.author = { $in: authors.map(a => new RegExp(a, 'i')) };
+            const authors = author.split(',').map(a => new RegExp(a.trim(), 'i'));
+            match.author = { $in: authors };
         }
-        if (minPrice || maxPrice) {
-            filter.price = {};
-            if (minPrice) filter.price.$gte = parseFloat(minPrice);
-            if (maxPrice) filter.price.$lte = parseFloat(maxPrice);
-        }
-        if (rating) filter.averageRating = { $gte: parseFloat(rating) };
-        if (inStock === 'true') filter.stock = { $gt: 0 };
-        if (discount) filter.discount = { $gt: 0 };
 
-        // Build sort object
-        const sortObj = {};
-        sortObj[sort] = order === 'asc' ? 1 : -1;
+        // Aggregation pipeline
+        const pipeline = [
+            {
+                $addFields: {
+                    discountedPrice: {
+                        $cond: [
+                            { $gt: ["$discount", 0] },
+                            { $multiply: ["$price", { $subtract: [1, { $divide: ["$discount", 100] }] }] },
+                            "$price"
+                        ]
+                    }
+                }
+            },
+            {
+                $match: {
+                    ...match,
+                    discountedPrice: { $gte: min, $lte: max },
+                    averageRating: { $gte: minRating, $lte: maxRating }
+                }
+            },
+            { $sort: { [sort]: order === 'asc' ? 1 : -1 } },
+            { $skip: (parseInt(page) - 1) * parseInt(limit) },
+            { $limit: parseInt(limit) }
+        ];
 
-        // Calculate pagination
-        const skip = (parseInt(page) - 1) * parseInt(limit);
-
-        // Execute query
-        const books = await Book.find(filter)
-            .sort(sortObj)
-            .skip(skip)
-            .limit(parseInt(limit));
-
-        // Get total count for pagination
-        const totalBooks = await Book.countDocuments(filter);
-        const totalPages = Math.ceil(totalBooks / parseInt(limit));
+        const books = await Book.aggregate(pipeline);
 
         res.status(200).json({
             success: true,
-            data: {
-                books,
-                pagination: {
-                    currentPage: parseInt(page),
-                    totalPages,
-                    totalBooks,
-                    hasNextPage: parseInt(page) < totalPages,
-                    hasPrevPage: parseInt(page) > 1,
-                    limit: parseInt(limit)
-                }
-            }
+            data: { books }
         });
-
     } catch (error) {
         res.status(500).json({
             success: false,
@@ -536,24 +528,24 @@ const toggleFeatured = async (req, res) => {
 //generateBookSummary
 const axios = require('axios');
 const getFormattedSummary = async (req, res) => {
-  try {
-    const bookId = req.params.id;
-    const book = await Book.findById(bookId);
-    if (!book) return res.status(404).json({ message: 'Book not found' });
+    try {
+        const bookId = req.params.id;
+        const book = await Book.findById(bookId);
+        if (!book) return res.status(404).json({ message: 'Book not found' });
 
-    const { isbn, title } = book;
+        const { isbn, title } = book;
 
-    // 🔍 Get book description
-    const googleUrl = `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`;
-    const response = await fetch(googleUrl);
-    const data = await response.json();
+        // 🔍 Get book description
+        const googleUrl = `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`;
+        const response = await fetch(googleUrl);
+        const data = await response.json();
 
-    const item = data.items?.[0];
-    const description = item?.volumeInfo?.description || 'No description available.';
-    const author = item?.volumeInfo?.authors?.[0] || 'Unknown Author';
+        const item = data.items?.[0];
+        const description = item?.volumeInfo?.description || 'No description available.';
+        const author = item?.volumeInfo?.authors?.[0] || 'Unknown Author';
 
-    // ✏️ Create full prompt
-    const prompt = `
+        // ✏️ Create full prompt
+        const prompt = `
 📘 AI Summary
 “${title}” by ${author}
 
@@ -563,25 +555,25 @@ Book Description:
 ${description}
     `.trim();
 
-    // 🔁 Send to Hugging Face Model
-     const hfRes = await fetch('https://api-inference.huggingface.co/models/facebook/bart-large-cnn', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${process.env.HF_API_TOKEN}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ inputs: prompt }),
-    });
+        // 🔁 Send to Hugging Face Model
+        const hfRes = await fetch('https://api-inference.huggingface.co/models/facebook/bart-large-cnn', {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${process.env.HF_API_TOKEN}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ inputs: prompt }),
+        });
 
-    const result = await hfRes.json();
+        const result = await hfRes.json();
 
-    const summary = result[0]?.summary_text || 'No summary generated';
+        const summary = result[0]?.summary_text || 'No summary generated';
 
-    return res.json({ summary });
-  } catch (error) {
-    console.error('AI Summary Error:', error.message);
-    return res.status(500).json({ message: 'Failed to generate summary' });
-  }
+        return res.json({ summary });
+    } catch (error) {
+        console.error('AI Summary Error:', error.message);
+        return res.status(500).json({ message: 'Failed to generate summary' });
+    }
 };
 
 
@@ -595,8 +587,8 @@ module.exports = {
     getBookByIdWithCart,
     updateBook,
     deleteBook,
-    toggleFeatured, 
+    toggleFeatured,
     getFormattedSummary
-    
+
 };
 // Note: Ensure that the deleteFile function is implemented in your upload middleware to handle file deletions properly.
