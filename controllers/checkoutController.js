@@ -68,7 +68,8 @@ const processCheckout = async (req, res) => {
             shippingAddress,
             billingAddress,
             paymentMethod,
-            notes
+            notes,
+            paymentDetails
         } = req.body;
 
         // Get user's cart
@@ -124,6 +125,10 @@ const processCheckout = async (req, res) => {
         });
 
         await order.save();
+        if (paymentMethod === 'paypal' && paymentDetails?.paypalId) {
+            order.paymentStatus = 'paid';
+            order.paymentId = paymentDetails.paypalId;
+          }
 
         // Clear the cart
         await clearUserCart(req.user.id);
@@ -135,9 +140,9 @@ const processCheckout = async (req, res) => {
         res.status(201).json({
             success: true,
             message: 'Checkout completed successfully',
+            orderId: order._id,
             data: {
                 order: populatedOrder
-                // لا داعي لإرسال رقم الطلب هنا لأنه موجود داخل الكائن `populatedOrder`
             }
         });
 

@@ -6,6 +6,10 @@ const paypal = require("@paypal/checkout-server-sdk");
 // Route to create a PayPal order
 router.post("/create-order", async (req, res) => {
   // Build the order request body
+  const amount = req.body.amount;
+  if (!amount || isNaN(amount)) {
+  return res.status(400).json({ error: 'Invalid amount' });
+  }
   const request = new paypal.orders.OrdersCreateRequest();
   request.prefer("return=representation");
   request.requestBody({
@@ -14,18 +18,20 @@ router.post("/create-order", async (req, res) => {
       {
         amount: {
           currency_code: "USD", // You can make this dynamic
-          value: req.body.amount, // Amount should come from the client
+          value: amount, // Amount should come from the client
         },
       },
     ],
   });
 
   try {
+    console.log("📦 Creating PayPal order with amount:", amount);
     // Create the order with PayPal
     const order = await client().execute(request);
     // Send the order ID to the client
     res.json({ id: order.result.id });
   } catch (err) {
+    console.error("❌ Error creating PayPal order:", err);
     res.status(500).json({ error: err.message });
   }
 });
