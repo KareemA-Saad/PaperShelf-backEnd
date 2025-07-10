@@ -4,62 +4,101 @@
 const User = require('../models/userModel');
 const Book = require('../models/bookModel.js');
 const { sendEmail, emailTemplates } = require('../utils/sendEmail');
+const Joi = require('joi');
 
 // Update user (name or password)
+
 const updateUserProfile = async (req, res) => {
+  console.log(" PATCH request reached updateUserProfile");
+
   try {
-    // Only allow updating self (or admin updating anyone, if needed)
     const userId = req.user._id.toString();
+
     if (req.params.id !== userId) {
       return res.status(403).json({ success: false, message: 'You can only update your own profile.' });
     }
 
-    const user = await User.findById(userId).select('+password');
-    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    const { name, currentPassword, newPassword, confirmNewPassword } = req.body;
 
-    // Update name (requires current password)
-    if (req.body.name) {
-      if (!req.body.currentPassword) {
-        return res.status(400).json({ success: false, message: 'Current password is required to update name' });
-      }
-      const isMatch = await user.comparePassword(req.body.currentPassword);
-      if (!isMatch) {
-        return res.status(400).json({ success: false, message: 'Current password is incorrect' });
-      }
-      user.name = req.body.name;
+    console.log(" req.body =", req.body);
+
+    const isTryingToUpdatePassword = newPassword && newPassword.trim() !== "";
+
+    if (!name && !isTryingToUpdatePassword) {
+      return res.status(400).json({ success: false, message: 'No update data provided. Please provide a new name or a new password.' });
     }
 
-    // Update password (requires currentPassword, newPassword, and confirmNewPassword)
-    if (req.body.currentPassword && req.body.newPassword && req.body.confirmNewPassword) {
-      // Check current password
-      const isMatch = await user.comparePassword(req.body.currentPassword);
-      if (!isMatch) {
-        return res.status(400).json({ success: false, message: 'Current password is incorrect' });
-      }
-
-      // Check if new password matches confirmation
-      if (req.body.newPassword !== req.body.confirmNewPassword) {
-        return res.status(400).json({ success: false, message: 'New password and confirmation password do not match' });
-      }
-
-      // Validate new password (will be validated by schema on save)
-      user.password = req.body.newPassword;
-      await user.save();
-
-      // Send notification email with reset link
-      const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password`;
-      const emailContent = emailTemplates.passwordChangedNotification(user.name, resetLink);
-      await sendEmail({
-        email: user.email,
-        subject: emailContent.subject,
-        html: emailContent.html
-      });
-      return res.json({ success: true, message: 'Password updated successfully' });
+    if (!currentPassword) {
+      return res.status(400).json({ success: false, message: 'Current password is required to update your profile.' });
     }
+
+    const user = await User.findById(userId).select('+password +tokenVersion');
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const isMatch = await user.comparePassword(currentPassword);
+    if (!isMatch) {
+      return res.status(400).json({ success: false, message: 'The current password you entered is incorrect.' });
+    }
+
+    let isModified = false;
+    let passwordUpdated = false;
+
+    if (name && user.name !== name) {
+      console.log(" Changing name from", user.name, "to", name);
+      user.name = name;
+      isModified = true;
+    }
+
+    if (isTryingToUpdatePassword) {
+      if (newPassword !== confirmNewPassword) {
+        return res.status(400).json({ success: false, message: 'New password and confirmation password do not match.' });
+      }
+
+      const isSameAsOld = await user.comparePassword(newPassword);
+      if (isSameAsOld) {
+        return res.status(400).json({ success: false, message: 'New password must be different from the current password.' });
+      }
+
+      // modify the password
+      user.password = newPassword;
+      isModified = true;
+      passwordUpdated = true;
+    }
+
+    if (!isModified) {
+      return res.status(200).json({ success: true, message: 'No changes were detected in your profile information.' });
+    }
+
     user.tokenVersion += 1;
     await user.save();
-    res.json({ success: true, message: 'Profile updated successfully', user: { id: user._id, name: user.name, email: user.email } });
+
+    console.log(" User updated successfully");
+
+ if (passwordUpdated) {
+  const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password`;
+  const emailContent = emailTemplates.passwordChangedNotification(user.name, resetLink);
+  await sendEmail({
+    email: user.email,
+    subject: emailContent.subject,
+    html: emailContent.html
+  });
+
+  // لا ترجع توكن جديد... فقط ابلّغه بالنجاح
+  return res.json({
+    success: true,
+    message: 'Your password has been updated successfully. You will be logged out. Please log in again with your new password.',
+  });
+}
+   res.json({
+      success: true,
+      message: 'Your profile has been updated successfully.',
+      user: { id: user._id, name: user.name, email: user.email }
+    });
+
   } catch (error) {
+    console.error(" Error in updateUserProfile:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };

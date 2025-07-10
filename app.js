@@ -13,6 +13,8 @@ const { handleUploadError } = require("./middlewares/upload");
 const wishlistRoute = require("./routes/wishlistRoute");
 const reviewRoute = require("./routes/reviewRoute");
 const paypalRoute = require("./routes/paypalRoute");
+const orderRoute = require("./routes/orderRoute");
+
 const cors = require("cors");
 const app = express();
 connectDB();
@@ -76,6 +78,8 @@ app.use("/api/v1/upload", uploadRoutes);
 
 // PayPal routes
 app.use("/api/paypal", paypalRoute);
+// Order routes
+app.use("/api/orders", orderRoute);
 
 // Upload error handling middleware
 app.use(handleUploadError);
