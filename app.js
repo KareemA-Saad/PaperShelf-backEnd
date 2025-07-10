@@ -72,6 +72,9 @@ app.use("/api/cart", cartRoute);
 // Checkout routes
 app.use("/api/checkout", checkoutRoute);
 
+// Order routes 
+app.use('/api/orders', orderRoutes);
+
 //  Upload routes
 const uploadRoutes = require("./routes/uploadRoutes");
 app.use("/api/v1/upload", uploadRoutes);

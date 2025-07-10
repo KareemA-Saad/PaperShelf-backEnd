@@ -581,6 +581,16 @@ const updateOrderStatusSchema = Joi.object({
         })
 });
 
+const updatePaymentStatusSchema = Joi.object({
+    paymentStatus: Joi.string()
+        .valid('pending', 'paid', 'failed', 'refunded')
+        .required()
+        .messages({
+            'any.only': 'Payment status must be one of: pending, paid, failed, refunded',
+            'any.required': 'Payment status is required'
+        })
+});
+
 // Checkout validation schemas
 const validateCheckoutSchema = Joi.object({
     // No body required for validation endpoint
@@ -729,6 +739,7 @@ module.exports = {
     updateCartItemSchema,
     createOrderSchema,
     updateOrderStatusSchema,
+    updatePaymentStatusSchema,
     validateCheckoutSchema,
     processCheckoutSchema,
     processPaymentSchema,

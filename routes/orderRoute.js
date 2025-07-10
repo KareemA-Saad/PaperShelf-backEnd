@@ -4,12 +4,13 @@ const {
     getUserOrders,
     getOrderById,
     updateOrderStatus,
+    updatePaymentStatus,
     getAllOrders
 } = require('../controllers/orderController');
 const authenticateUser = require('../middlewares/authenticateUser');
 const authorizeRoles = require('../middlewares/authorizeRoles');
 const validate = require('../middlewares/validate');
-const { updateOrderStatusSchema } = require('../utils/validationSchemas');
+const { updateOrderStatusSchema,updatePaymentStatusSchema } = require('../utils/validationSchemas');
 
 // All order routes require authentication
 router.use(authenticateUser);
@@ -29,6 +30,14 @@ router.put('/:orderId/status',
     authorizeRoles('admin'),
     validate(updateOrderStatusSchema),
     updateOrderStatus
+);
+
+// PUT /api/orders/:orderId/payment-status - Admin only
+router.put(
+    '/:orderId/payment-status',
+    authorizeRoles('admin'),
+    validate(updatePaymentStatusSchema),
+    updatePaymentStatus
 );
 
 // GET /api/orders/admin/all - Get all orders (Admin only)
