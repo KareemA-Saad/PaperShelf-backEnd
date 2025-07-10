@@ -695,7 +695,7 @@ const updateUserSchema = (isAdmin = false) => {
         name: Joi.string().min(2).max(50),
         newPassword: Joi.string()
             .min(8)
-            .pattern(/^(?=.[a-z])(?=.[A-Z])(?=.\d)(?=.[@$!%?&])[A-Za-z\d@$!%?&]{8,}$/)
+            .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/)
             .messages({
                 'string.min': 'Password must be at least 8 characters long',
                 'string.pattern.base': 'Password must contain at least 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character (@$!%*?&)',
