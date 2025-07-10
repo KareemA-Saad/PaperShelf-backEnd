@@ -13,6 +13,8 @@ const { handleUploadError } = require("./middlewares/upload");
 const wishlistRoute = require("./routes/wishlistRoute");
 const reviewRoute = require("./routes/reviewRoute");
 const paypalRoute = require("./routes/paypalRoute");
+const orderRoutes = require('./routes/orderRoute');
+
 const cors = require("cors");
 const app = express();
 connectDB();
@@ -69,6 +71,9 @@ app.use("/api/reviews", reviewRoute);
 app.use("/api/cart", cartRoute);
 // Checkout routes
 app.use("/api/checkout", checkoutRoute);
+
+// Order routes 
+app.use('/api/orders', orderRoutes);
 
 //  Upload routes
 const uploadRoutes = require("./routes/uploadRoutes");
