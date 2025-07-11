@@ -57,7 +57,9 @@ exports.deleteReview = async (req, res) => {
         if (review.user.toString() !== userId.toString() && req.user.role !== 'admin') {
             return res.status(403).json({ success: false, message: 'Not authorized to delete this review.' });
         }
-        review.remove();
+        console.log("this line is called");
+        book.reviews.pull(reviewId);
+        
         // Update averageRating and totalReviews
         book.totalReviews = book.reviews.length;
         book.averageRating = book.reviews.length > 0 ? (book.reviews.reduce((sum, r) => sum + r.rating, 0) / book.reviews.length) : 0;
@@ -70,16 +72,6 @@ exports.deleteReview = async (req, res) => {
 
 // Get all reviews for a book
 exports.getReviews = async (req, res) => {
-    // try {
-    //     const { bookId } = req.params;
-    //     const book = await Book.findById(bookId).populate('reviews.user', 'name');
-    //     if (!book) {
-    //         return res.status(404).json({ success: false, message: 'Book not found.' });
-    //     }
-    //     res.status(200).json({ success: true, data: book.reviews });
-    // } catch (error) {
-    //     res.status(500).json({ success: false, message: error.message });
-    // }
     try {
         const { bookId } = req.params;
         const book = await Book.findById(bookId).populate({
