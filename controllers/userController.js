@@ -71,8 +71,12 @@ const updateUserProfile = async (req, res) => {
       return res.status(200).json({ success: true, message: 'No changes were detected in your profile information.' });
     }
 
-    user.tokenVersion += 1;
-    await user.save();
+    if (isModified) {
+      if (passwordUpdated) {
+        user.tokenVersion += 1; 
+      }
+      await user.save();
+    }
 
     console.log(" User updated successfully");
 

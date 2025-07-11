@@ -2,6 +2,17 @@
 const Book = require('../models/bookModel');
 
 
+// Helper function to standardize author names
+function standardizeAuthorName(name) {
+  if (!name) return '';
+  let clean = name.trim().replace(/[.,]+$/, '');
+  if (clean.includes(',')) {
+    throw new Error('Please enter only one author name per book.');
+  }
+  clean = clean.replace(/\b\w/g, c => c.toUpperCase());
+  return clean;
+}
+
 // Create a new book
 
 exports.createBook = async (req, res) => {
@@ -27,7 +38,8 @@ exports.createBook = async (req, res) => {
       stock,
       isNew,
       isBestseller,
-      isFeatured
+      isFeatured,
+      author // <-- get author from body if present
     } = req.body;
 
     const existingBook = await Book.findOne({ isbn });
@@ -36,6 +48,13 @@ exports.createBook = async (req, res) => {
         success: false,
         message: 'A book with this ISBN already exists'
       });
+    }
+
+    let authorField;
+    if (author) {
+      authorField = standardizeAuthorName(author);
+    } else {
+      authorField = req.user._id;
     }
 
     const book = new Book({
@@ -52,7 +71,7 @@ exports.createBook = async (req, res) => {
       isNew,
       isBestseller,
       isFeatured,
-      author: req.user._id,
+      author: authorField,
       isApproved: false
     });
 
@@ -61,7 +80,7 @@ exports.createBook = async (req, res) => {
 
   } catch (error) {
     console.error('❌ Error in createBook:', error);
-    res.status(500).json({ success: false, message: 'Something went wrong' });
+    res.status(500).json({ success: false, message: error.message || 'Something went wrong' });
   }
 };
 
@@ -111,7 +130,7 @@ exports.updateBook = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Book not found' });
     }
 
-     if (book.isApproved) {
+    if (book.isApproved) {
       book.isApproved = false; // Mark for re-approval
     }
 
@@ -167,7 +186,7 @@ exports.deleteBook = async (req, res) => {
       });
     }
 
-    
+
     return res.status(400).json({
       success: false,
       message: 'Delete request already pending.'

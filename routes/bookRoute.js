@@ -7,6 +7,7 @@ const {
     getAllBooks,
     searchBooks,
     getCategories,
+    getAuthors,
     getFeaturedBooks,
     createBook,
     getBookById,
@@ -39,6 +40,9 @@ router.get('/search', validate(bookSearchSchema, 'query'), searchBooks);
 
 // GET /api/v1/books/categories - Get all categories
 router.get('/categories', getCategories);
+
+// GET /api/v1/books/authors - Get all authors from books
+router.get('/authors', getAuthors);
 
 // GET /api/v1/books/featured - Get featured books
 router.get('/featured', getFeaturedBooks);
