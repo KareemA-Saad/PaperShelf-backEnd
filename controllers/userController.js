@@ -73,29 +73,29 @@ const updateUserProfile = async (req, res) => {
 
     if (isModified) {
       if (passwordUpdated) {
-        user.tokenVersion += 1; 
+        user.tokenVersion += 1;
       }
       await user.save();
     }
 
     console.log(" User updated successfully");
 
- if (passwordUpdated) {
-  const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password`;
-  const emailContent = emailTemplates.passwordChangedNotification(user.name, resetLink);
-  await sendEmail({
-    email: user.email,
-    subject: emailContent.subject,
-    html: emailContent.html
-  });
+    if (passwordUpdated) {
+      const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password`;
+      const emailContent = emailTemplates.passwordChangedNotification(user.name, resetLink);
+      await sendEmail({
+        email: user.email,
+        subject: emailContent.subject,
+        html: emailContent.html
+      });
 
-  // لا ترجع توكن جديد... فقط ابلّغه بالنجاح
-  return res.json({
-    success: true,
-    message: 'Your password has been updated successfully. You will be logged out. Please log in again with your new password.',
-  });
-}
-   res.json({
+      // لا ترجع توكن جديد... فقط ابلّغه بالنجاح
+      return res.json({
+        success: true,
+        message: 'Your password has been updated successfully. You will be logged out. Please log in again with your new password.',
+      });
+    }
+    res.json({
       success: true,
       message: 'Your profile has been updated successfully.',
       user: { id: user._id, name: user.name, email: user.email }
@@ -279,18 +279,183 @@ const deleteUserById = async (req, res) => {
 // Get all pending books (isApproved: false)
 const getPendingBooks = async (req, res) => {
   try {
-    // Ensure the Book model is imported
-    const pendingBooks = await Book.find({ isApproved: false }).populate('author', 'name email');
+    const {
+      page = 1,
+      limit = 20,
+      sort = 'createdAt',
+      order = 'desc',
+      category,
+      author,
+      minPrice,
+      maxPrice,
+      rating
+    } = req.query;
+
+    // Parse numbers
+    const min = minPrice ? parseFloat(minPrice) : 0;
+    const max = maxPrice ? parseFloat(maxPrice) : Number.MAX_SAFE_INTEGER;
+    const minRating = rating ? parseFloat(rating) : 0;
+    const maxRating = rating ? minRating + 0.99 : 5;
+
+    // Build match object
+    const match = { isApproved: false };
+    if (category) match.category = category;
+    if (author) {
+      const User = require('../models/userModel');
+      const authorNames = author.split(',').map(a => a.trim());
+
+      // Find users with these names
+      const users = await User.find({
+        name: { $in: authorNames },
+        role: 'author'
+      });
+
+      const userIds = users.map(u => u._id);
+      const authorRegexes = authorNames.map(name => new RegExp(name, 'i'));
+
+      match.$or = [
+        { author: { $in: authorRegexes } },
+        { author: { $in: userIds } }
+      ];
+    }
+
+    // Aggregation pipeline
+    const pipeline = [
+      {
+        $addFields: {
+          discountedPrice: {
+            $cond: [
+              { $gt: ["$discount", 0] },
+              { $multiply: ["$price", { $subtract: [1, { $divide: ["$discount", 100] }] }] },
+              "$price"
+            ]
+          }
+        }
+      },
+      {
+        $match: {
+          ...match,
+          discountedPrice: { $gte: min, $lte: max },
+          averageRating: { $gte: minRating, $lte: maxRating }
+        }
+      },
+      { $sort: { [sort]: order === 'asc' ? 1 : -1 } },
+      { $skip: (parseInt(page) - 1) * parseInt(limit) },
+      { $limit: parseInt(limit) }
+    ];
+
+    // Get total count for pagination
+    const countPipeline = [
+      {
+        $addFields: {
+          discountedPrice: {
+            $cond: [
+              { $gt: ["$discount", 0] },
+              { $multiply: ["$price", { $subtract: [1, { $divide: ["$discount", 100] }] }] },
+              "$price"
+            ]
+          }
+        }
+      },
+      {
+        $match: {
+          ...match,
+          discountedPrice: { $gte: min, $lte: max },
+          averageRating: { $gte: minRating, $lte: maxRating }
+        }
+      },
+      { $count: "total" }
+    ];
+
+    const countResult = await Book.aggregate(countPipeline);
+    const totalBooks = countResult[0]?.total || 0;
+    const totalPages = Math.ceil(totalBooks / parseInt(limit));
+
+    const books = await Book.aggregate(pipeline);
 
     res.status(200).json({
       success: true,
-      count: pendingBooks.length,
-      data: pendingBooks
+      data: {
+        books,
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages,
+          totalBooks,
+          hasNextPage: parseInt(page) < totalPages,
+          hasPrevPage: parseInt(page) > 1,
+          limit: parseInt(limit)
+        }
+      }
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: 'Server Error' });
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
   }
+};
+// Search in pending books
+const searchPendingBooks = async (req, res) => {
+    try {
+        const { q, page = 1, limit = 20, searchIn = ['title', 'author', 'description'] } = req.query;
+
+        if (!q) {
+            return res.status(400).json({
+                success: false,
+                message: 'Search query is required'
+            });
+        }
+
+        // Build search query based on searchIn fields
+        const searchQuery = {
+            isApproved:false,
+            $or: []
+        };
+
+        if (searchIn.includes('title')) {
+            searchQuery.$or.push({ title: { $regex: q, $options: 'i' } });
+        }
+        if (searchIn.includes('author')) {
+            searchQuery.$or.push({ author: { $regex: q, $options: 'i' } });
+        }
+        if (searchIn.includes('description')) {
+            searchQuery.$or.push({ description: { $regex: q, $options: 'i' } });
+        }
+
+        // Calculate pagination
+        const skip = (parseInt(page) - 1) * parseInt(limit);
+
+        // Execute search
+        const books = await Book.find(searchQuery)
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(parseInt(limit));
+
+        // Get total count
+        const totalBooks = await Book.countDocuments(searchQuery);
+        const totalPages = Math.ceil(totalBooks / parseInt(limit));
+
+        res.status(200).json({
+            success: true,
+            data: {
+                books,
+                pagination: {
+                    currentPage: parseInt(page),
+                    totalPages,
+                    totalBooks,
+                    hasNextPage: parseInt(page) < totalPages,
+                    hasPrevPage: parseInt(page) > 1,
+                    limit: parseInt(limit)
+                }
+            }
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
 };
 
 // Approve a book by ID
@@ -429,6 +594,7 @@ module.exports = {
   getPendingDeleteBooks,
   approveBookDeletion,
   rejectBookDeletion,
+  searchPendingBooks,
   isSuperAdmin, // Export helper function for use in other modules
 };
 

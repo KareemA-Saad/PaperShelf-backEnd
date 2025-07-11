@@ -137,6 +137,7 @@ const searchBooks = async (req, res) => {
 
         // Build search query based on searchIn fields
         const searchQuery = {
+            isApproved:true,
             $or: []
         };
 

@@ -11,12 +11,13 @@ const {
   getAllUsers,
   getUserById,
   updateUser,
+  searchPendingBooks,
   deleteMe,
   deleteUserById,
   getAllAuthors,
 } = require('../controllers/userController');
 
-const { updateUserSchema } = require('../utils/validationSchemas');
+const { updateUserSchema,bookSearchSchema } = require('../utils/validationSchemas');
 const validate = require('../middlewares/validate');
 
 // Route definitions
@@ -74,6 +75,9 @@ router.get(
   authorizeRoles('admin'),
   userController.getPendingDeleteBooks
 );
+
+// search of pending books
+router.get('/admin/search', validate(bookSearchSchema, 'query'), searchPendingBooks);
 
 // Approve deletion (permanently delete the book)
 router.delete(
