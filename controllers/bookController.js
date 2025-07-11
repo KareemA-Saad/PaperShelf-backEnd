@@ -1,7 +1,7 @@
 const Book = require('../models/bookModel');
 const Cart = require('../models/cartModel');
 const { generateFileUrl, deleteFile } = require('../middlewares/upload');
-const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 require('dotenv').config();
 
 // Get all books with filtering, sorting, and pagination
@@ -29,8 +29,22 @@ const getAllBooks = async (req, res) => {
         const match = { isApproved: true };
         if (category) match.category = category;
         if (author) {
-            const authors = author.split(',').map(a => new RegExp(a.trim(), 'i'));
-            match.author = { $in: authors };
+            const User = require('../models/userModel');
+            const authorNames = author.split(',').map(a => a.trim());
+
+            // Find users with these names
+            const users = await User.find({
+                name: { $in: authorNames },
+                role: 'author'
+            });
+
+            const userIds = users.map(u => u._id);
+            const authorRegexes = authorNames.map(name => new RegExp(name, 'i'));
+
+            match.$or = [
+                { author: { $in: authorRegexes } },
+                { author: { $in: userIds } }
+            ];
         }
 
         // Aggregation pipeline
@@ -58,11 +72,48 @@ const getAllBooks = async (req, res) => {
             { $limit: parseInt(limit) }
         ];
 
+        // Get total count for pagination
+        const countPipeline = [
+            {
+                $addFields: {
+                    discountedPrice: {
+                        $cond: [
+                            { $gt: ["$discount", 0] },
+                            { $multiply: ["$price", { $subtract: [1, { $divide: ["$discount", 100] }] }] },
+                            "$price"
+                        ]
+                    }
+                }
+            },
+            {
+                $match: {
+                    ...match,
+                    discountedPrice: { $gte: min, $lte: max },
+                    averageRating: { $gte: minRating, $lte: maxRating }
+                }
+            },
+            { $count: "total" }
+        ];
+
+        const countResult = await Book.aggregate(countPipeline);
+        const totalBooks = countResult[0]?.total || 0;
+        const totalPages = Math.ceil(totalBooks / parseInt(limit));
+
         const books = await Book.aggregate(pipeline);
 
         res.status(200).json({
             success: true,
-            data: { books }
+            data: {
+                books,
+                pagination: {
+                    currentPage: parseInt(page),
+                    totalPages,
+                    totalBooks,
+                    hasNextPage: parseInt(page) < totalPages,
+                    hasPrevPage: parseInt(page) > 1,
+                    limit: parseInt(limit)
+                }
+            }
         });
     } catch (error) {
         res.status(500).json({
@@ -158,6 +209,75 @@ const getCategories = async (req, res) => {
             }
         });
 
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+// Helper function to standardize author names
+function standardizeAuthorName(name) {
+    if (!name) return '';
+    let clean = name.trim().replace(/[.,]+$/, '');
+    if (clean.includes(',')) return ''; // skip multi-name entries
+    clean = clean.replace(/\b\w/g, c => c.toUpperCase());
+    return clean;
+}
+
+// Get all authors from books
+const getAuthors = async (req, res) => {
+    try {
+        const User = require('../models/userModel');
+        const Book = require('../models/bookModel');
+
+        // Get all unique author values (strings and ObjectIds)
+        const authorValues = await Book.distinct('author');
+
+        // Separate ObjectIds from strings
+        const objectIdAuthors = authorValues.filter(id =>
+            typeof id === 'object' || (typeof id === 'string' && id.match(/^[0-9a-fA-F]{24}$/))
+        );
+        const stringAuthors = authorValues.filter(id =>
+            typeof id === 'string' && !id.match(/^[0-9a-fA-F]{24}$/)
+        );
+
+        // Get user names for ObjectId authors
+        const userAuthors = await User.find({
+            _id: { $in: objectIdAuthors },
+            role: 'author'
+        }).select('name');
+
+        // Combine all authors (standardize string authors)
+        const allAuthorNames = [
+            ...stringAuthors.map(standardizeAuthorName),
+            ...userAuthors.map(user => standardizeAuthorName(user.name))
+        ];
+
+        // Remove duplicates and empty names
+        const uniqueAuthorNames = [...new Set(allAuthorNames)].filter(Boolean);
+
+        // Get book counts and filter only those with at least one book
+        const authorsWithCount = await Promise.all(
+            uniqueAuthorNames.map(async (authorName) => {
+                let count = 0;
+                count += await Book.countDocuments({ author: authorName });
+                const user = await User.findOne({ name: authorName, role: 'author' });
+                if (user) {
+                    count += await Book.countDocuments({ author: user._id });
+                }
+                return { name: authorName, bookCount: count };
+            })
+        );
+
+        // Only include authors with at least one book
+        const filteredAuthors = authorsWithCount.filter(a => a.bookCount > 0);
+
+        res.status(200).json({
+            success: true,
+            data: { authors: filteredAuthors }
+        });
     } catch (error) {
         res.status(500).json({
             success: false,
@@ -581,6 +701,7 @@ module.exports = {
     getAllBooks,
     searchBooks,
     getCategories,
+    getAuthors,
     getFeaturedBooks,
     createBook,
     getBookById,
