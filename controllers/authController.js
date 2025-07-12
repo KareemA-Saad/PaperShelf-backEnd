@@ -3,6 +3,32 @@ const User = require('../models/userModel');
 const { generateTokens, verifyRefreshToken } = require('../utils/generateToken');
 const { sendEmail, emailTemplates, generateOTP } = require('../utils/sendEmail');
 const crypto = require('crypto');
+const { OAuth2Client } = require('google-auth-library');
+
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+// Helper to generate a random password that meets complexity requirements
+const generateStrongPassword = () => {
+  const length = 12;
+  const lower = 'abcdefghijklmnopqrstuvwxyz';
+  const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const digits = '0123456789';
+  const special = '@$!%*?&';
+  const allChars = lower + upper + digits + special;
+
+  let password = '';
+  password += lower[Math.floor(Math.random() * lower.length)];
+  password += upper[Math.floor(Math.random() * upper.length)];
+  password += digits[Math.floor(Math.random() * digits.length)];
+  password += special[Math.floor(Math.random() * special.length)];
+
+  for (let i = 4; i < length; i++) {
+    password += allChars[Math.floor(Math.random() * allChars.length)];
+  }
+
+  // Shuffle the password to avoid predictable patterns
+  return password.split('').sort(() => 0.5 - Math.random()).join('');
+};
 
 // Generate email verification OTP
 const generateEmailVerificationOTP = () => {
@@ -398,7 +424,7 @@ const refreshToken = async (req, res) => {
         message: 'Token version mismatch. Please login again.'
       });
     }
-    
+
     // Generate new tokens
     const { accessToken, refreshToken: newRefreshToken } = generateTokens(user);
 
@@ -423,6 +449,83 @@ const refreshToken = async (req, res) => {
   }
 };
 
+// Google Sign-In
+const googleSignIn = async (req, res) => {
+  try {
+    const { token, role = 'user' } = req.body;
+
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const { name, email, sub: googleId, picture: avatar } = ticket.getPayload();
+
+    let user = await User.findOne({ email }).select('+tokenVersion');
+
+    if (!user) {
+      // If user doesn't exist, create a new one
+      user = await User.create({
+        googleId,
+        name,
+        email,
+        password: generateStrongPassword(), // Generate a random strong password
+        isEmailVerified: true, // Email is verified by Google
+        avatar,
+        role, // Use the role provided by the user
+      });
+    } else {
+      // Check if user is active
+      if (!user.isActive) {
+        return res.status(401).json({
+          success: false,
+          message: 'Account is deactivated'
+        });
+      }
+
+      // If user exists, update googleId and avatar if not present
+      if (!user.googleId) {
+        user.googleId = googleId;
+      }
+      if (!user.avatar && avatar) {
+        user.avatar = avatar;
+      }
+      await user.save({ validateBeforeSave: false });
+    }
+
+    // Generate tokens
+    const { accessToken, refreshToken } = generateTokens(user);
+
+    // Save refresh token to user
+    user.refreshToken = refreshToken;
+    user.lastLogin = new Date();
+    await user.save({ validateBeforeSave: false });
+
+    res.status(200).json({
+      success: true,
+      message: 'Google Sign-In successful',
+      data: {
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          isEmailVerified: user.isEmailVerified,
+          avatar: user.avatar,
+        },
+        accessToken,
+        refreshToken,
+      },
+    });
+  } catch (error) {
+    res.status(401).json({
+      success: false,
+      message: 'Google authentication failed',
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -431,5 +534,6 @@ module.exports = {
   resendVerificationOTP,
   requestPasswordReset,
   resetPassword,
-  refreshToken
+  refreshToken,
+  googleSignIn,
 };

@@ -10,7 +10,8 @@ const {
     resendVerificationOTP,
     requestPasswordReset,
     resetPassword,
-    refreshToken
+    refreshToken,
+    googleSignIn,
 } = require('../controllers/authController');
 
 // Import middlewares
@@ -24,12 +25,14 @@ const {
     verifyEmailSchema,
     requestPasswordResetSchema,
     resetPasswordSchema,
-    resendVerificationSchema
+    resendVerificationSchema,
+    googleSignInSchema,
 } = require('../utils/validationSchemas');
 
 // Public routes (no authentication required)
 router.post('/register', validate(registerSchema), register);
 router.post('/login', validate(loginSchema), login);
+router.post('/google', validate(googleSignInSchema), googleSignIn);
 router.post('/logout', logout);
 router.post('/refresh-token', refreshToken);
 
@@ -40,10 +43,5 @@ router.post('/resend-verification', validate(resendVerificationSchema), resendVe
 // Password reset routes
 router.post('/request-password-reset', validate(requestPasswordResetSchema), requestPasswordReset); // Request password reset OTP
 router.post('/reset-password', validate(resetPasswordSchema), resetPassword); // Reset password with OTP
-
-// Protected routes (authentication required)
-// Add these later when we implement user profile features
-// router.get('/profile', authenticateUser, getProfile);
-// router.put('/profile', authenticateUser, updateProfile);
 
 module.exports = router;
