@@ -112,6 +112,21 @@ const resendVerificationSchema = Joi.object({
         })
 });
 
+// Google Sign-In schema
+const googleSignInSchema = Joi.object({
+    token: Joi.string()
+        .required()
+        .messages({
+            'any.required': 'Google ID token is required'
+        }),
+    role: Joi.string()
+        .valid('user', 'author')
+        .default('user')
+        .messages({
+            'any.only': 'Role must be either user or author'
+        })
+});
+
 // Book creation schema (for form data with file upload)
 const createBookSchema = Joi.object({
     title: Joi.string()
@@ -731,6 +746,7 @@ module.exports = {
     requestPasswordResetSchema,
     resetPasswordSchema,
     resendVerificationSchema,
+    googleSignInSchema,
     createBookSchema,
     updateBookSchema,
     bookListingSchema,
