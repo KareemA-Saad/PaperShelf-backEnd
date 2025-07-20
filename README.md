@@ -104,6 +104,7 @@ PaperShelf Backend is a comprehensive RESTful API built with Node.js and Express
    Visit `http://localhost:3000/` to see the health check endpoint.
 
 ## 📋 API Documentation
+📚 [API Documentation on SwaggerHub](https://iti5.portal.swaggerhub.com/papershelf/docs/papershelf-api-v-1-0-0)
 
 ### Base URL
 ```
